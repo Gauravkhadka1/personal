@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows", "debian-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userId              Int       @id @default(autoincrement())
+  firstname           String? // Made nullable
+  lastname            String? // Made nullable
+  phone               String? // Made nullable
+  email               String    @unique
+  profilePictureUrl   String?
+  password            String
+  role                Role      @default(USER)
+    failedLoginAttempts   Int                   @default(0)
+  lastLogin             DateTime?
+  accountLockedUntil    DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime? @updatedAt
+
+  earnedIncomes     EarnedIncome[]
+  passiveIncomes    PassiveIncome[]
+  expenses          Expense[]
+  assets            Asset[]
+  liabilities       Liability[]
+  dailyExpenses     DailyExpense[]
+  expenseCategories ExpenseCategory[]
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+// Earned Income
+model EarnedIncome {
+  id        String   @id @default(cuid())
+  name      String
+  amount    Float
+  userId    Int
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Passive Income
+model PassiveIncome {
+  id        String   @id @default(cuid())
+  name      String
+  amount    Float
+  userId    Int
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// General Expenses (not daily)
+model Expense {
+  id     String @id @default(cuid())
+  name   String
+  amount Float
+  userId Int
+  user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Assets
+model Asset {
+  id     String @id @default(cuid())
+  name   String
+  value  Float
+  userId Int
+  user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Liabilities
+model Liability {
+  id     String @id @default(cuid())
+  name   String
+  value  Float
+  userId Int
+  user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Daily Expenses with category
+model DailyExpense {
+  id       String   @id @default(cuid())
+  name     String
+  amount   Float
+  category String // e.g., "Food", "Transport", "Entertainment", "Shopping"
+  date     DateTime @default(now())
+  userId   Int
+  user     User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Expense Categories for dropdown
+model ExpenseCategory {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  color  String? // Optional color code for UI
+  icon   String? // Optional icon name
+  userId Int?
+  user   User?   @relation(fields: [userId], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
