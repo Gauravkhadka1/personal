@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import withRoleAuth from "../../../hoc/withRoleAuth";
-import { useRegisterUserMutation, useGetClientsQuery } from "@/state/api";
+import { useRegisterUserMutation} from "@/state/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Select from 'react-select';
 
@@ -12,10 +12,9 @@ const SignUpForm = () => {
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
-    username: "",
     phone: "",
     email: "",
-    role: "INTERN" as "ADMIN" | "DESIGNER" | "DEVELOPER" | "INTERN" | "CLIENT", // Add CLIENT
+    role: "USER" as "USER", 
     profilePictureUrl: "",
     password: "",
     confirmPassword: "",
@@ -28,14 +27,6 @@ const SignUpForm = () => {
   const router = useRouter();
   const [registerUser] = useRegisterUserMutation();
   
-  // Fetch clients for the dropdown
-  const { data: clients, isLoading: isClientsLoading } = useGetClientsQuery();
-  
-  // Prepare client options for react-select
-  const clientOptions = clients?.map(client => ({
-    value: client.id,
-    label: `${client.domainName} (${client.companyName})`
-  })) || [];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -65,24 +56,16 @@ const SignUpForm = () => {
       return;
     }
 
-    // Validate client selection for CLIENT role
-    if (formData.role === "CLIENT" && !formData.clientId) {
-      setError("Please select a client domain for CLIENT role");
-      setLoading(false);
-      return;
-    }
 
     try {
       const userData = {
         firstname: formData.firstname,
         lastname: formData.lastname,
-        username: formData.username,
         phone: formData.phone,
         email: formData.email,
         role: formData.role,
         profilePictureUrl: formData.profilePictureUrl,
         password: formData.password,
-        clientId: formData.role === "CLIENT" ? formData.clientId || undefined : undefined,
       };
 
       await registerUser(userData).unwrap();
@@ -91,10 +74,9 @@ const SignUpForm = () => {
       setFormData({
         firstname: "",
         lastname: "",
-        username: "",
         phone: "",
         email: "",
-        role: "INTERN",
+        role: "USER",
         profilePictureUrl: "",
         password: "",
         confirmPassword: "",
@@ -151,20 +133,6 @@ const SignUpForm = () => {
           </div>
 
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-              Username
-            </label>
-            <input
-              type="text"
-              id="username"
-              value={formData.username}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
               Phone
             </label>
@@ -211,37 +179,7 @@ const SignUpForm = () => {
             </select>
           </div>
 
-          {/* Client Domain Selection - Only show when role is CLIENT */}
-          {formData.role === "CLIENT" && (
-            <div>
-              <label htmlFor="clientId" className="block text-sm font-medium text-gray-700">
-                Client Domain
-              </label>
-              <Select
-                id="clientId"
-                options={clientOptions}
-                value={clientOptions.find(option => option.value === formData.clientId)}
-                onChange={handleClientChange}
-                isClearable
-                placeholder="Select client domain..."
-                isLoading={isClientsLoading}
-                required={formData.role === "CLIENT"}
-                className="mt-2"
-                styles={{
-                  control: (base) => ({
-                    ...base,
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.375rem',
-                    padding: '0.25rem',
-                    '&:hover': {
-                      borderColor: '#d1d5db'
-                    }
-                  })
-                }}
-              />
-            </div>
-          )}
-
+          
           <div>
             <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700">
               Profile Picture

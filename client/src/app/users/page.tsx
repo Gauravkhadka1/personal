@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Phone } from "lucide-react";
-import { UserStatus } from "@/components/UserStatus";
 
 const restrictedUserIds = ["11", "24", "26", "30"];
 const customOrder = [
@@ -183,14 +182,6 @@ const Users = () => {
                       </AvatarFallback>
                     )}
                   </Avatar>
-                  {/* Status dot positioned absolutely within the avatar container */}
-                  <div className="absolute bottom-0 right-0">
-                    <UserStatus
-                      lastSeenAt={user.lastSeenAt}
-                      className=""
-                      showOnlyDot
-                    />
-                  </div>
                 </div>
               </Link>
               <div className="text-center">
@@ -230,29 +221,6 @@ const Users = () => {
                 </Button>
               </Link>
 
-              {isAdmin && (
-                <select
-                  value={user.role}
-                  onChange={(event) => {
-                    const newRole = event.target.value;
-                    if (typeof user.userId === "number") {
-                      handleRoleChange(
-                        user.userId,
-                        user.username,
-                        user.role,
-                        newRole,
-                      );
-                    }
-                  }}
-                  className="rounded border border-gray-300 px-2 py-1 text-sm dark:bg-dark-secondary dark:text-gray-300"
-                  disabled={isUpdating}
-                >
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="DESIGNER">DESIGNER</option>
-                  <option value="DEVELOPER">DEVELOPER</option>
-                  <option value="INTERN">INTERN</option>
-                </select>
-              )}
             </CardFooter>
           </Card>
         ))}

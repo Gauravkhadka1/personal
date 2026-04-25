@@ -36,22 +36,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { useGetClientsQuery, useGetClientCountsQuery } from "@/state/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePathname, useSearchParams } from "next/navigation";
-
-interface Installment {
-  number: number;
-  dueDate: string | Date;
-  amount: number;
-  paid: boolean;
-}
-
-interface Service {
-  expiry: string | Date | undefined;
-  type?: string;
-  amount?: number;
-}
 
 const Sidebar = () => {
   const [showExpiryDropdown, setShowExpiryDropdown] = useState(false);
@@ -61,8 +47,6 @@ const Sidebar = () => {
   );
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   const { user, loading } = useAuth();
-  const { data: clients = [] } = useGetClientsQuery();
-  const { data: clientCounts } = useGetClientCountsQuery();
 
   const sidebarClassNames = `fixed flex flex-col h-[100%] justify-between shadow-xl
     transition-all duration-300 h-full z-40 dark:bg-secondary overflow-y-auto custom-scrollbar bg-white
@@ -70,129 +54,6 @@ const Sidebar = () => {
 
   const [showTasksDropdown, setShowTasksDropdown] = useState(false);
   const [showReportsDropdown, setShowReportsDropdown] = useState(false);
-
-  const calculateExpiryCounts = () => {
-    // Get current time in Nepal (UTC+5:45)
-    const now = new Date();
-    const nepalOffset = 5.75 * 60 * 60 * 1000;
-    const nepalTime = new Date(now.getTime() + nepalOffset);
-
-    // Set to beginning of day in Nepal time
-    const today = new Date(nepalTime);
-    today.setUTCHours(0, 0, 0, 0);
-
-    const counts = {
-      expiringIn30Days: 0, // 16-30 days
-      expiringIn15Days: 0, // 8-15 days
-      expiringIn7Days: 0, // 1-7 days
-      expired: 0, // Expired
-      total: 0, // All
-      suspended: clients.filter((client) => client.status === "suspend").length,
-      newClient: clientCounts?.newClients30Days || 0,
-    };
-
-    const calculateDaysLeft = (
-      expiryDate: string | Date | undefined,
-    ): number | string => {
-      if (!expiryDate) return "N/A";
-
-      const expiry = new Date(expiryDate);
-      const diffTime = expiry.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      return diffDays;
-    };
-
-    clients.forEach((client) => {
-      // Skip suspended clients for all counts except suspended count
-      if (client.status === "suspend") return;
-
-      // Track unique expiry dates for this client
-      const clientExpiryDates = new Set<string>();
-
-      // Process Microsoft services
-      if (client.microsoftServices) {
-        try {
-          const msServices =
-            typeof client.microsoftServices === "string"
-              ? JSON.parse(client.microsoftServices)
-              : client.microsoftServices;
-
-          msServices.forEach((service: any) => {
-            if (service.expiryDate) {
-              clientExpiryDates.add(
-                new Date(service.expiryDate).toISOString().split("T")[0],
-              );
-            }
-          });
-        } catch (e) {
-          console.error("Error parsing Microsoft services:", e);
-        }
-      }
-
-      // Process other services
-      [
-        client.domainExpiryDate,
-        client.hostingExpiryDate,
-        client.maintenanceExpiryDate,
-      ].forEach((expiry) => {
-        if (expiry) {
-          clientExpiryDates.add(new Date(expiry).toISOString().split("T")[0]);
-        }
-      });
-
-      // Process web design installments (only unpaid ones)
-      if (client.webDesignInstallments) {
-        try {
-          const installments =
-            typeof client.webDesignInstallments === "string"
-              ? JSON.parse(client.webDesignInstallments)
-              : client.webDesignInstallments;
-
-          installments.forEach((installment: any) => {
-            if (!installment.paid && installment.dueDate) {
-              clientExpiryDates.add(
-                new Date(installment.dueDate).toISOString().split("T")[0],
-              );
-            }
-          });
-        } catch (e) {
-          console.error("Error parsing installments:", e);
-        }
-      }
-
-      // Count each unique expiry date for this client
-      clientExpiryDates.forEach((dateStr) => {
-        const expiryDate = new Date(dateStr);
-        const daysLeft = calculateDaysLeft(expiryDate);
-
-        if (typeof daysLeft !== "number") return;
-
-        counts.total++; // Count all unique expiry dates
-
-        if (daysLeft < 0) {
-          counts.expired++;
-        } else if (daysLeft <= 7) {
-          counts.expiringIn7Days++;
-        } else if (daysLeft <= 15) {
-          counts.expiringIn15Days++;
-        } else if (daysLeft <= 30) {
-          counts.expiringIn30Days++;
-        }
-      });
-    });
-
-    return counts;
-  };
-  const {
-    expiringIn30Days,
-    expiringIn15Days,
-    expiringIn7Days,
-    expired,
-    total,
-    suspended,
-    newClient,
-  } = calculateExpiryCounts();
 
   if (loading) {
     return (
@@ -334,13 +195,9 @@ const Sidebar = () => {
                 </div>
               )}
             </div> */}
-      
-              <SidebarLink
-                icon={ClipboardList}
-                label="Tasks"
-                href="/tasks"
-              />
-          
+
+            <SidebarLink icon={ClipboardList} label="Tasks" href="/tasks" />
+
             {isAdminOrDesignerOrDeveloper && (
               <SidebarLink
                 icon={FolderCode}
@@ -372,169 +229,6 @@ const Sidebar = () => {
                   People
                 </h3>
               </div>
-
-              {isAdmin && (
-                <>
-                  <div className="relative">
-                    <div
-                      onClick={() => setShowExpiryDropdown(!showExpiryDropdown)}
-                      className={`flex cursor-pointer items-center gap-4 px-8 py-3 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                        usePathname().startsWith("/clients") ||
-                        usePathname().startsWith("/expiry")
-                          ? "bg-gray-100 dark:bg-secondary"
-                          : ""
-                      }`}
-                    >
-                      <BookUser className="h-6 w-6 text-base text-sidebar-iconcolor dark:text-gray-1000" />
-                      <span className="text-base font-medium text-sidebar-color dark:text-gray-1000">
-                        Clients
-                      </span>
-                      <span className="ml-auto flex items-center gap-1">
-                        {showExpiryDropdown ? (
-                          <ChevronUp className="h-4 w-4 text-sidebar-iconcolor dark:text-gray-1000" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-sidebar-iconcolor dark:text-gray-1000" />
-                        )}
-                      </span>
-                    </div>
-
-                    {showExpiryDropdown && (
-                      <div className="relative space-y-1">
-                        {/* Vertical line - positioned relative to the pl-8 padding */}
-                        <div className="absolute left-8 top-0 h-[92%] w-px bg-gray-300 dark:bg-gray-600"></div>
-
-                        {/* All Clients */}
-                        <div className="relative">
-                          <div className="absolute left-8 top-[8px] h-4 w-6 rounded-bl-lg border-b-[1px] border-l-[1px] border-gray-300 dark:border-gray-600"></div>
-                          <div className="ml-10 flex items-center">
-                            <SidebarLink
-                              label="Create"
-                              href="/clients/create"
-                              className="bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"
-                            />
-                            <BadgePlus className="absolute right-8 h-4 w-4 text-sidebar-iconcolor dark:text-gray-1000" />
-                          </div>
-                        </div>
-                        {/* Total */}
-                        <div className="relative">
-                          <div className="absolute left-8 top-[5px] h-4 w-6 rounded-bl-lg border-b-[1px] border-l-[1px] border-gray-300 dark:border-gray-600"></div>
-                          <div className="ml-10">
-                            <SidebarLink
-                              label="Total"
-                              href="/expiry/list"
-                              count={clients.length}
-                              className="bg-gray-50 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                            />
-                          </div>
-                        </div>
-
-                        {/* 30 days left */}
-                        <div className="relative">
-                          <div className="absolute left-8 top-[5px] h-4 w-6 rounded-bl-lg border-b-[1px] border-l-[1px] border-gray-300 dark:border-gray-600"></div>
-                          <div className="ml-10">
-                            <SidebarLink
-                              label="30 days"
-                              href="/expiry/list?filter=30"
-                              count={expiringIn30Days}
-                              is30Days
-                              className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-300 dark:hover:bg-indigo-900/30"
-                            />
-                          </div>
-                        </div>
-
-                        {/* 15 days left */}
-                        <div className="relative">
-                          <div className="absolute left-8 top-[5px] h-4 w-6 rounded-bl-lg border-b-[1px] border-l-[1px] border-gray-300 dark:border-gray-600"></div>
-                          <div className="ml-10">
-                            <SidebarLink
-                              label="15 days"
-                              href="/expiry/list?filter=15"
-                              count={expiringIn15Days}
-                              is15Days
-                              className="bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30"
-                            />
-                          </div>
-                        </div>
-
-                        {/* 7 days left */}
-                        <div className="relative">
-                          <div className="absolute left-8 top-[5px] h-4 w-6 rounded-bl-lg border-b-[1px] border-l-[1px] border-gray-300 dark:border-gray-600"></div>
-                          <div className="ml-10">
-                            <SidebarLink
-                              label="7 days"
-                              href="/expiry/list?filter=7"
-                              count={expiringIn7Days}
-                              className="bg-orange-50 text-orange-700 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-300 dark:hover:bg-orange-900/30"
-                              is7Days
-                            />
-                          </div>
-                        </div>
-
-                        {/* Expired */}
-                        <div className="relative">
-                          <div className="absolute left-8 top-[5px] h-4 w-6 rounded-bl-lg border-b-[1px] border-l-[1px] border-gray-300 dark:border-gray-600"></div>
-                          <div className="ml-10">
-                            <SidebarLink
-                              label="Expired"
-                              href="/expiry/list?filter=expired"
-                              count={expired}
-                              className="bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
-                              isExpired
-                            />
-                          </div>
-                        </div>
-
-                        {/* Suspended */}
-                        <div className="relative">
-                          <div className="absolute left-8 top-[5px] h-4 w-6 rounded-bl-lg border-b-[1px] border-l-[1px] border-gray-300 dark:border-gray-600"></div>
-                          <div className="ml-10">
-                            <SidebarLink
-                              label="Suspended"
-                              href="/expiry/list?filter=suspended"
-                              count={suspended}
-                              className="bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                              isSuspended
-                            />
-                          </div>
-                        </div>
-                        {/* Newly Created */}
-                        <div className="relative">
-                          <div className="absolute left-8 top-[5px] h-4 w-6 rounded-bl-lg border-b-[1px] border-l-[1px] border-gray-300 dark:border-gray-600"></div>
-                          <div className="ml-10">
-                            <SidebarLink
-                              label="New Clients"
-                              href="/expiry/list?filter=newclient"
-                              // count={newClient}
-                              className="bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30"
-                              isNewClient
-                            />
-                          </div>
-                        </div>
-                        <div className="relative">
-                          <div className="absolute left-8 top-[5px] h-4 w-6 rounded-bl-lg border-b-[1px] border-l-[1px] border-gray-300 dark:border-gray-600"></div>
-                          <div className="ml-10">
-                            <SidebarLink
-                              label="Support Expired"
-                              href="/support-expiring"
-                              className="bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:hover:bg-purple-900/30"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <SidebarLink
-                    icon={ReceiptText}
-                    label="Create Invoice"
-                    href="/create-invoice"
-                  />
-                  <SidebarLink
-                    icon={UserRoundPlus}
-                    label="Prospects"
-                    href="/prospects"
-                  />
-                </>
-              )}
 
               {isAdminOrDesignerOrDeveloper && (
                 <SidebarLink icon={Users} label="Team" href="/users" />
