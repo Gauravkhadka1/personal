@@ -13,23 +13,9 @@ const morgan_1 = __importDefault(require("morgan"));
 const path_1 = __importDefault(require("path"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
-const authMiddleware_1 = require("./middleware/authMiddleware");
 /* ROUTE IMPORTS */
-const prospectsRoutes_1 = __importDefault(require("./routes/prospectsRoutes"));
-const taskRoutes_1 = __importDefault(require("./routes/taskRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
-const clientRoutes_1 = __importDefault(require("./routes/clientRoutes"));
-const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
-const noteRoutes_1 = __importDefault(require("./routes/noteRoutes"));
-const checklistRoutes_1 = __importDefault(require("./routes/checklistRoutes"));
-const todayUpdateRoutes_1 = __importDefault(require("./routes/todayUpdateRoutes"));
-const systemFeedbackRoutes_1 = __importDefault(require("./routes/systemFeedbackRoutes"));
-const knowledgeSharingRoutes_1 = __importDefault(require("./routes/knowledgeSharingRoutes"));
-const systemUpdateRoutes_1 = __importDefault(require("./routes/systemUpdateRoutes"));
-const salesNoteRoutes_1 = __importDefault(require("./routes/salesNoteRoutes"));
-const paymentRoutes_1 = __importDefault(require("./routes/paymentRoutes"));
-const projectLessonRoutes_1 = __importDefault(require("./routes/projectLessonRoutes"));
-const policiesRoutes_1 = __importDefault(require("./routes/policiesRoutes"));
+const financeRoutes_1 = __importDefault(require("./routes/financeRoutes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
@@ -99,24 +85,11 @@ app.use("/uploads", express_1.default.static(UPLOAD_DIR, {
     },
 }));
 /* ROUTES */
-app.get("/", (req, res) => {
+app.get("/api", (req, res) => {
     res.send("This is home route. Backend is running.");
 });
-app.use("/prospects", authMiddleware_1.authenticateToken, prospectsRoutes_1.default);
-app.use("/tasks", authMiddleware_1.authenticateToken, taskRoutes_1.default);
-app.use("/users", userRoutes_1.default);
-app.use("/clients", authMiddleware_1.authenticateToken, clientRoutes_1.default);
-app.use("/notifications", authMiddleware_1.authenticateToken, notificationRoutes_1.default);
-app.use("/notes", authMiddleware_1.authenticateToken, noteRoutes_1.default);
-app.use("/checklists", checklistRoutes_1.default);
-app.use("/today-updates", authMiddleware_1.authenticateToken, todayUpdateRoutes_1.default);
-app.use("/system-updates", authMiddleware_1.authenticateToken, systemUpdateRoutes_1.default);
-app.use("/system-feedback", authMiddleware_1.authenticateToken, systemFeedbackRoutes_1.default);
-app.use("/knowledge-sharing", authMiddleware_1.authenticateToken, knowledgeSharingRoutes_1.default);
-app.use("/sales-notes", authMiddleware_1.authenticateToken, salesNoteRoutes_1.default);
-app.use("/payments", authMiddleware_1.authenticateToken, paymentRoutes_1.default);
-app.use("/project-lessons", authMiddleware_1.authenticateToken, projectLessonRoutes_1.default);
-app.use("/policies", authMiddleware_1.authenticateToken, policiesRoutes_1.default);
+app.use("/api/users", userRoutes_1.default);
+app.use("/api/finance", financeRoutes_1.default);
 /* SERVER */
 const port = Number(process.env.PORT) || 8000;
 server.listen(port, "0.0.0.0", () => {

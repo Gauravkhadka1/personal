@@ -62,14 +62,9 @@ const authenticateToken = (req, res, next) => __awaiter(void 0, void 0, void 0, 
             where: { userId: decoded.userId },
             select: {
                 userId: true,
-                isActive: true,
                 role: true // ← ADD THIS
             }
         });
-        if (!user || !user.isActive) {
-            res.status(403).json({ message: "Account deactivated or does not exist" });
-            return;
-        }
         req.userId = decoded.userId;
         req.user = user; // ← ADD THIS
         next();
