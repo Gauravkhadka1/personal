@@ -18,7 +18,6 @@ const SignUpForm = () => {
     profilePictureUrl: "",
     password: "",
     confirmPassword: "",
-    clientId: null as number | null,
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -32,9 +31,6 @@ const SignUpForm = () => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
-  const handleClientChange = (selectedOption: any) => {
-    setFormData({ ...formData, clientId: selectedOption?.value || null });
-  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -80,7 +76,6 @@ const SignUpForm = () => {
         profilePictureUrl: "",
         password: "",
         confirmPassword: "",
-        clientId: null,
       });
       setPreviewImage(null);
 
@@ -261,5 +256,4 @@ const SignUpForm = () => {
   );
 };
 
-// export default withRoleAuth(SignUpForm, ["ADMIN"]);
-export default SignUpForm;
+export default withRoleAuth(SignUpForm, ["ADMIN"]);
