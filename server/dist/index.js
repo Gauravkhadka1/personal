@@ -22,10 +22,9 @@ const server = http_1.default.createServer(app);
 const UPLOAD_DIR = path_1.default.join(process.cwd(), "/uploads");
 // ✅ Single source of truth for allowed origins
 const ALLOWED_ORIGINS = [
-    "https://webtech.mobi.np", // no trailing slash
-    "https://www.webtech.mobi.np", // www variant
+    "https://fin-gym.vercel.app", // no trailing slash
+    "https://www.fin-gym.vercel.app", // www variant
     "http://localhost:3000", // local dev
-    "http://localhost:3001", // local dev
 ];
 /* SOCKET.IO SETUP */
 const io = new socket_io_1.Server(server, {

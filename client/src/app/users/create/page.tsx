@@ -261,4 +261,5 @@ const SignUpForm = () => {
   );
 };
 
-export default withRoleAuth(SignUpForm, ["ADMIN"]);
+// export default withRoleAuth(SignUpForm, ["ADMIN"]);
+export default SignUpForm;
