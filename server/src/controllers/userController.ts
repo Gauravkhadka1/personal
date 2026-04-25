@@ -346,7 +346,6 @@ export const getCurrentUser = async (
       where: { userId: Number(userId) },
       select: {
         userId: true,
-        username: true,
         email: true,
         profilePictureUrl: true,
         role: true,
@@ -390,7 +389,6 @@ export const uploadProfilePicture = async (
         userId: true,
         firstname: true,
         lastname: true,
-        username: true,
         phone: true,
         email: true,
         profilePictureUrl: true,

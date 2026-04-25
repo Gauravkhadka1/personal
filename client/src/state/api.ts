@@ -23,43 +23,74 @@ export interface UserPayload {
   clientId?: number;
 }
 
-export interface PolicyCategory {
-  id: number;
+export interface EarnedIncome {
+  id: string;
   name: string;
-  description?: string;
-  policies?: Policy[];
+  amount: number;
+  userId: number;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface Policy {
-  id: number;
-  content: string;
-  categoryId: number;
-  category?: PolicyCategory;
-  version: number;
-  isActive: boolean;
-  createdBy: number;
-  createdByUser?: {
-    userId: number;
-    username: string;
-    email: string;
-  };
-  updatedBy?: number;
-  updatedByUser?: {
-    userId: number;
-    username: string;
-    email: string;
-  };
+export interface PassiveIncome {
+  id: string;
+  name: string;
+  amount: number;
+  userId: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Expense {
+  id: string;
+  name: string;
+  amount: number;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Asset {
+  id: string;
+  name: string;
+  value: number;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Liability {
+  id: string;
+  name: string;
+  value: number;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FinancialSummary {
+  summary: {
+    totalEarnedIncome: number;
+    totalPassiveIncome: number;
+    totalIncome: number;
+    totalExpenses: number;
+    totalAssets: number;
+    totalLiabilities: number;
+    netCashFlow: number;
+    netWorth: number;
+  };
+  details: {
+    earnedIncomes: EarnedIncome[];
+    passiveIncomes: PassiveIncome[];
+    expenses: Expense[];
+    liabilities: Liability[];
+  };
 }
 
 export const api = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
-    // Add this to your second API's prepareHeaders function to debug
-    prepareHeaders: (headers, { getState }) => {
+    prepareHeaders: (headers) => {
       const token = localStorage.getItem("token");
       if (token) {
         headers.set("Authorization", `Bearer ${token}`);
@@ -68,8 +99,18 @@ export const api = createApi({
     },
   }),
   reducerPath: "api",
-  tagTypes: ["Users", "PolicyCategories", "Policies"],
+  tagTypes: [
+    "Users",
+    "PolicyCategories",
+    "Policies",
+    "EarnedIncome",
+    "PassiveIncome",
+    "Expense",
+    "Asset",
+    "Liability",
+  ],
   endpoints: (build) => ({
+    // User endpoints (existing)
     registerUser: build.mutation<{ message: string }, UserPayload>({
       query: (userData) => ({
         url: "users",
@@ -94,6 +135,7 @@ export const api = createApi({
       query: () => "users",
       providesTags: ["Users"],
     }),
+
     deleteUser: build.mutation<void, string>({
       query: (email) => ({
         url: `users/${email}`,
@@ -104,141 +146,211 @@ export const api = createApi({
 
     updateUserRole: build.mutation<void, { userId: number; role: string }>({
       query: ({ userId, role }) => ({
-        url: `users/role/${userId}`, // Match backend route
-        method: "PUT", // Change to PUT
+        url: `users/role/${userId}`,
+        method: "PUT",
         body: { role },
       }),
       invalidatesTags: ["Users"],
     }),
 
-    // Policy Category Endpoints
-    getCategories: build.query<PolicyCategory[], void>({
-      query: () => "policies/categories",
-      providesTags: ["PolicyCategories"],
+    getFinancialSummary: build.query<FinancialSummary, void>({
+      query: () => "finance/summary",
+      providesTags: ["EarnedIncome", "PassiveIncome", "Expense", "Liability"],
     }),
-    createCategory: build.mutation<
-      PolicyCategory,
-      { name: string; description?: string }
+
+    // Earned Income
+    getEarnedIncomes: build.query<EarnedIncome[], void>({
+      query: () => "finance/earned-income",
+      providesTags: ["EarnedIncome"],
+    }),
+    createEarnedIncome: build.mutation<
+      EarnedIncome,
+      { name: string; amount: number }
     >({
       query: (body) => ({
-        url: "policies/categories",
+        url: "finance/earned-income",
         method: "POST",
         body,
       }),
-      invalidatesTags: ["PolicyCategories"],
+      invalidatesTags: ["EarnedIncome"],
     }),
-    updateCategory: build.mutation<
-      PolicyCategory,
-      { id: number; name: string; description?: string }
+    updateEarnedIncome: build.mutation<
+      EarnedIncome,
+      { id: string; name: string; amount: number }
     >({
       query: ({ id, ...body }) => ({
-        url: `policies/categories/${id}`,
+        url: `finance/earned-income/${id}`,
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["PolicyCategories"],
+      invalidatesTags: ["EarnedIncome"],
     }),
-    deleteCategory: build.mutation<void, number>({
+    deleteEarnedIncome: build.mutation<void, string>({
       query: (id) => ({
-        url: `policies/categories/${id}`,
+        url: `finance/earned-income/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["PolicyCategories", "Policies"],
+      invalidatesTags: ["EarnedIncome"],
     }),
 
-    getPolicies: build.query<Policy[], { categoryId?: number } | void>({
-      query: (params) => {
-        const queryParams = new URLSearchParams();
-        if (params && params.categoryId) {
-          queryParams.append("categoryId", params.categoryId.toString());
-        }
-        return `policies/policies?${queryParams.toString()}`;
+    // Passive Income
+    getPassiveIncomes: build.query<PassiveIncome[], void>({
+      query: () => "finance/passive-income",
+      providesTags: ["PassiveIncome"],
+    }),
+    createPassiveIncome: build.mutation<
+      PassiveIncome,
+      { name: string; amount: number }
+    >({
+      query: (body) => ({
+        url: "finance/passive-income",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["PassiveIncome"],
+    }),
+    updatePassiveIncome: build.mutation<
+      PassiveIncome,
+      { id: string; name: string; amount: number }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `finance/passive-income/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["PassiveIncome"],
+    }),
+    deletePassiveIncome: build.mutation<void, string>({
+      query: (id) => ({
+        url: `finance/passive-income/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["PassiveIncome"],
+    }),
+
+    // Expense
+    getExpenses: build.query<Expense[], void>({
+      query: () => "finance/expense",
+      providesTags: ["Expense"],
+    }),
+    createExpense: build.mutation<Expense, { name: string; amount: number }>({
+      query: (body) => ({
+        url: "finance/expense",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Expense"],
+    }),
+    updateExpense: build.mutation<
+      Expense,
+      { id: string; name: string; amount: number }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `finance/expense/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["Expense"],
+    }),
+    deleteExpense: build.mutation<void, string>({
+      query: (id) => ({
+        url: `finance/expense/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Expense"],
+    }),
+
+    getAssets: build.query<Asset[], void>({
+  query: () => "finance/asset",
+  providesTags: ["Asset"],
+}),
+createAsset: build.mutation<Asset, { name: string; value: number }>({
+  query: (body) => ({
+    url: "finance/asset",
+    method: "POST",
+    body,
+  }),
+  invalidatesTags: ["Asset"],
+}),
+updateAsset: build.mutation<Asset, { id: string; name: string; value: number }>({
+  query: ({ id, ...body }) => ({
+    url: `finance/asset/${id}`,
+    method: "PUT",
+    body,
+  }),
+  invalidatesTags: ["Asset"],
+}),
+deleteAsset: build.mutation<void, string>({
+  query: (id) => ({
+    url: `finance/asset/${id}`,
+    method: "DELETE",
+  }),
+  invalidatesTags: ["Asset"],
+}),
+
+    // Liability
+    getLiabilities: build.query<Liability[], void>({
+      query: () => "finance/liability",
+      providesTags: ["Liability"],
+    }),
+    createLiability: build.mutation<Liability, { name: string; value: number }>(
+      {
+        query: (body) => ({
+          url: "finance/liability",
+          method: "POST",
+          body,
+        }),
+        invalidatesTags: ["Liability"],
       },
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.map(({ id }) => ({ type: "Policies" as const, id })),
-              { type: "Policies", id: "LIST" },
-            ]
-          : [{ type: "Policies", id: "LIST" }],
-    }),
-
-    getPolicyById: build.query<Policy, number>({
-      query: (id) => `policies/policies/${id}`,
-      providesTags: (result, error, id) => [{ type: "Policies", id }],
-    }),
-
-    createPolicy: build.mutation<
-      Policy,
-      { content: string; categoryId: number }
-    >({
-      query: (body) => ({
-        url: "policies/policies",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["Policies", "PolicyCategories"],
-    }),
-
-    updatePolicy: build.mutation<
-      Policy,
-      { id: number; content: string; categoryId: number }
+    ),
+    updateLiability: build.mutation<
+      Liability,
+      { id: string; name: string; value: number }
     >({
       query: ({ id, ...body }) => ({
-        url: `policies/policies/${id}`,
+        url: `finance/liability/${id}`,
         method: "PUT",
         body,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: "Policies", id }],
+      invalidatesTags: ["Liability"],
     }),
-
-    deletePolicy: build.mutation<void, number>({
+    deleteLiability: build.mutation<void, string>({
       query: (id) => ({
-        url: `policies/policies/${id}`,
+        url: `finance/liability/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Policies", "PolicyCategories"],
-    }),
-
-    // Add these to your API slice
-    reorderCategories: build.mutation<void, { categoryIds: number[] }>({
-      query: (body) => ({
-        url: "policies/categories/reorder",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["PolicyCategories"],
-    }),
-
-    reorderPolicies: build.mutation<
-      void,
-      { categoryId: number; policyIds: number[] }
-    >({
-      query: (body) => ({
-        url: "policies/policies/reorder",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["Policies"],
+      invalidatesTags: ["Liability"],
     }),
   }),
 });
 
 export const {
+  // User hooks
   useGetUsersQuery,
   useUpdateUserRoleMutation,
   useDeleteUserMutation,
   useRegisterUserMutation,
   useChangePasswordMutation,
 
-  useGetCategoriesQuery,
-  useCreateCategoryMutation,
-  useUpdateCategoryMutation,
-  useDeleteCategoryMutation,
-  useGetPoliciesQuery,
-  useCreatePolicyMutation,
-  useUpdatePolicyMutation,
-  useDeletePolicyMutation,
-  useReorderCategoriesMutation,
-  useReorderPoliciesMutation,
+  useGetFinancialSummaryQuery,
+  useGetEarnedIncomesQuery,
+  useCreateEarnedIncomeMutation,
+  useUpdateEarnedIncomeMutation,
+  useDeleteEarnedIncomeMutation,
+  useGetPassiveIncomesQuery,
+  useCreatePassiveIncomeMutation,
+  useUpdatePassiveIncomeMutation,
+  useDeletePassiveIncomeMutation,
+  useGetExpensesQuery,
+  useCreateExpenseMutation,
+  useUpdateExpenseMutation,
+  useDeleteExpenseMutation,
+   useGetAssetsQuery,
+  useCreateAssetMutation,
+  useUpdateAssetMutation,
+  useDeleteAssetMutation,
+  useGetLiabilitiesQuery,
+  useCreateLiabilityMutation,
+  useUpdateLiabilityMutation,
+  useDeleteLiabilityMutation,
 } = api;

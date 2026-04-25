@@ -16,15 +16,9 @@ import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   useGetUsersQuery,
-  useGetNotificationsQuery,
-  useMarkNotificationAsReadMutation,
-  useMarkAllNotificationsAsReadMutation,
-  useUpdateLastSeenMutation,
 } from "@/state/api";
 import { cn } from "@/lib/utils";
-import { playNotificationSound } from "../../hooks/useNotificationSound";
 import { useRouter } from "next/navigation";
-import { UserStatus } from "../UserStatus";
 
 const Navbar = () => {
   const dispatch = useAppDispatch();
@@ -36,113 +30,16 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const { data: users } = useGetUsersQuery();
   const currentUser = users?.find((u) => u.email === user?.email);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const notificationsRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  const [updateLastSeen] = useUpdateLastSeenMutation();
-
-  const { data: notifications = [], refetch: refetchNotifications } =
-    useGetNotificationsQuery(
-      {
-        userId: currentUser?.userId || 0,
-        showAll: false, // Only fetch unread notifications for the navbar
-      },
-      {
-        skip: !currentUser?.userId,
-        pollingInterval: 5000,
-      },
-    );
-
-  const [markAsRead] = useMarkNotificationAsReadMutation();
-  const [markAllAsRead] = useMarkAllNotificationsAsReadMutation();
-
-  const unreadCount = notifications?.filter((n) => !n.isRead).length || 0;
-
-  // Play sound for new notifications
-  useEffect(() => {
-    if (notifications.length > 0) {
-      const latestNotification = notifications[0];
-      if (!latestNotification.isRead) {
-        playNotificationSound(latestNotification); // Now this works!
-      }
-    }
-  }, [notifications]);
-
-  // Close notifications when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        notificationsRef.current &&
-        !notificationsRef.current.contains(event.target as Node)
-      ) {
-        setShowNotifications(false);
-      }
-      if (
-        profileRef.current &&
-        !profileRef.current.contains(event.target as Node)
-      ) {
-        setShowProfileDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  // Update presence every minute when user is active
-  useEffect(() => {
-    const interval = setInterval(() => {
-      updateLastSeen();
-    }, 60 * 1000); // Update every minute
-
-    // Also update on component mount
-    updateLastSeen();
-
-    return () => clearInterval(interval);
-  }, [updateLastSeen]);
-
-  // Update presence when user interacts with the page
-  useEffect(() => {
-    const handleActivity = () => {
-      updateLastSeen();
-    };
-
-    window.addEventListener("mousemove", handleActivity);
-    window.addEventListener("keydown", handleActivity);
-
-    return () => {
-      window.removeEventListener("mousemove", handleActivity);
-      window.removeEventListener("keydown", handleActivity);
-    };
-  }, [updateLastSeen]);
 
   const handleLogout = () => {
     logout();
     router.push("/");
   };
 
-  const handleNotificationClick = async (notificationId: number) => {
-    try {
-      await markAsRead(notificationId).unwrap();
-      refetchNotifications();
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-    }
-  };
 
-  const handleMarkAllAsRead = async () => {
-    if (!currentUser?.userId) return;
-    try {
-      await markAllAsRead(currentUser.userId).unwrap();
-      refetchNotifications();
-    } catch (error) {
-      console.error("Error marking all notifications as read:", error);
-    }
-  };
 
   const getGreeting = () => {
     const currentHour = new Date().getHours();
@@ -178,23 +75,7 @@ const Navbar = () => {
 
       {/* Right side */}
       <div className="flex items-center">
-        {/* Notification Bell */}
-        <div className="relative mr-3" ref={notificationsRef}>
-          <button
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="relative rounded-full p-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            <Link href="/notifications">
-              <Bell className="h-6 w-6 cursor-pointer dark:text-gray-200" />
-            </Link>
-            {unreadCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-        </div>
-
+       
         {/* Dark mode toggle */}
         <button
           onClick={() => dispatch(setIsDarkMode(!isDarkMode))}
@@ -223,7 +104,7 @@ const Navbar = () => {
               {currentUser?.profilePictureUrl ? (
                 <AvatarImage
                   src={buildImageUrl(currentUser.profilePictureUrl)}
-                  alt={`${currentUser?.username}'s profile`}
+                  alt={`${currentUser?.firstname}'s profile`}
                   className="object-cover"
                 />
               ) : (
@@ -232,17 +113,7 @@ const Navbar = () => {
                   {currentUser?.lastname?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               )}
-              {/* Green dot for online status */}
-              <UserStatus
-                lastSeenAt={currentUser?.lastSeenAt}
-                className="absolute -bottom-1.5 -right-1.5"
-                showOnlyDot
-              />
             </Avatar>
-
-            <span className="hidden dark:text-gray-300 md:inline">
-              {currentUser?.username}
-            </span>
           </button>
 
           {/* Profile Dropdown */}

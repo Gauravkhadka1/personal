@@ -501,6 +501,174 @@ export const deleteExpense = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+// Add these after the Liability controllers
+
+// ==================== ASSET CONTROLLERS ====================
+
+export const createAsset = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).userId;
+    const { name, value } = req.body;
+
+    if (!name || value === undefined) {
+      res.status(400).json({ message: "Name and value are required" });
+      return;
+    }
+
+    if (typeof value !== 'number' || value <= 0) {
+      res.status(400).json({ message: "Value must be a positive number" });
+      return;
+    }
+
+    const asset = await prisma.asset.create({
+      data: {
+        name,
+        value,
+        userId: Number(userId),
+      },
+    });
+
+    res.status(201).json({
+      message: "Asset created successfully",
+      data: asset,
+    });
+  } catch (error: any) {
+    console.error("Error creating asset:", error);
+    res.status(500).json({ message: `Error creating asset: ${error.message}` });
+  }
+};
+
+export const getAssets = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).userId;
+    const { page = 1, limit = 10 } = req.query;
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [assets, total] = await Promise.all([
+      prisma.asset.findMany({
+        where: { userId: Number(userId) },
+        skip,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.asset.count({
+        where: { userId: Number(userId) },
+      }),
+    ]);
+
+    res.json({
+      data: assets,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error: any) {
+    console.error("Error fetching assets:", error);
+    res.status(500).json({ message: `Error fetching assets: ${error.message}` });
+  }
+};
+
+export const getAssetById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+
+    const asset = await prisma.asset.findFirst({
+      where: {
+        id,
+        userId: Number(userId),
+      },
+    });
+
+    if (!asset) {
+      res.status(404).json({ message: "Asset not found" });
+      return;
+    }
+
+    res.json({ data: asset });
+  } catch (error: any) {
+    console.error("Error fetching asset:", error);
+    res.status(500).json({ message: `Error fetching asset: ${error.message}` });
+  }
+};
+
+export const updateAsset = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+    const { name, value } = req.body;
+
+    // Check if asset exists and belongs to user
+    const existingAsset = await prisma.asset.findFirst({
+      where: {
+        id,
+        userId: Number(userId),
+      },
+    });
+
+    if (!existingAsset) {
+      res.status(404).json({ message: "Asset not found" });
+      return;
+    }
+
+    if (value !== undefined && (typeof value !== 'number' || value <= 0)) {
+      res.status(400).json({ message: "Value must be a positive number" });
+      return;
+    }
+
+    const updatedAsset = await prisma.asset.update({
+      where: { id },
+      data: {
+        name: name || existingAsset.name,
+        value: value !== undefined ? value : existingAsset.value,
+      },
+    });
+
+    res.json({
+      message: "Asset updated successfully",
+      data: updatedAsset,
+    });
+  } catch (error: any) {
+    console.error("Error updating asset:", error);
+    res.status(500).json({ message: `Error updating asset: ${error.message}` });
+  }
+};
+
+export const deleteAsset = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+
+    // Check if asset exists and belongs to user
+    const existingAsset = await prisma.asset.findFirst({
+      where: {
+        id,
+        userId: Number(userId),
+      },
+    });
+
+    if (!existingAsset) {
+      res.status(404).json({ message: "Asset not found" });
+      return;
+    }
+
+    await prisma.asset.delete({
+      where: { id },
+    });
+
+    res.json({ message: "Asset deleted successfully" });
+  } catch (error: any) {
+    console.error("Error deleting asset:", error);
+    res.status(500).json({ message: `Error deleting asset: ${error.message}` });
+  }
+};
+
 // ==================== LIABILITY CONTROLLERS ====================
 
 export const createLiability = async (req: Request, res: Response): Promise<void> => {
@@ -673,21 +841,23 @@ export const getFinancialSummary = async (req: Request, res: Response): Promise<
   try {
     const userId = (req as any).userId;
 
-    const [earnedIncomes, passiveIncomes, expenses, liabilities] = await Promise.all([
+    const [earnedIncomes, passiveIncomes, expenses, assets, liabilities] = await Promise.all([
       prisma.earnedIncome.findMany({ where: { userId: Number(userId) } }),
       prisma.passiveIncome.findMany({ where: { userId: Number(userId) } }),
       prisma.expense.findMany({ where: { userId: Number(userId) } }),
+      prisma.asset.findMany({ where: { userId: Number(userId) } }),
       prisma.liability.findMany({ where: { userId: Number(userId) } }),
     ]);
 
     const totalEarnedIncome = earnedIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalPassiveIncome = passiveIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
+    const totalAssets = assets.reduce((sum, item) => sum + item.value, 0);
     const totalLiabilities = liabilities.reduce((sum, item) => sum + item.value, 0);
     
     const totalIncome = totalEarnedIncome + totalPassiveIncome;
     const netCashFlow = totalIncome - totalExpenses;
-    const netWorth = totalIncome - totalLiabilities;
+    const netWorth = totalAssets - totalLiabilities;
 
     res.json({
       summary: {
@@ -695,6 +865,7 @@ export const getFinancialSummary = async (req: Request, res: Response): Promise<
         totalPassiveIncome,
         totalIncome,
         totalExpenses,
+        totalAssets,
         totalLiabilities,
         netCashFlow,
         netWorth,
@@ -703,6 +874,7 @@ export const getFinancialSummary = async (req: Request, res: Response): Promise<
         earnedIncomes,
         passiveIncomes,
         expenses,
+        assets,
         liabilities,
       },
     });

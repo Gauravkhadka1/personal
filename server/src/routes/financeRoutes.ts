@@ -19,6 +19,14 @@ import {
   getExpenseById,
   updateExpense,
   deleteExpense,
+
+  // Asset
+
+  createAsset,
+  getAssets,
+  getAssetById,
+  updateAsset,
+  deleteAsset,
   // Liability
   createLiability,
   getLiabilities,
@@ -54,6 +62,13 @@ router.get("/expense", getExpenses);
 router.get("/expense/:id", getExpenseById);
 router.put("/expense/:id", updateExpense);
 router.delete("/expense/:id", deleteExpense);
+
+// ==================== ASSET ROUTES ====================
+router.post("/asset", createAsset);
+router.get("/asset", getAssets);
+router.get("/asset/:id", getAssetById);
+router.put("/asset/:id", updateAsset);
+router.delete("/asset/:id", deleteAsset);
 
 // ==================== LIABILITY ROUTES ====================
 router.post("/liability", createLiability);
