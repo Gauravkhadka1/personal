@@ -196,7 +196,7 @@ const Sidebar = () => {
               )}
             </div> */}
 
-            <SidebarLink icon={ClipboardList} label="Tasks" href="/tasks" />
+            <SidebarLink icon={ClipboardList} label="Daily Expenses" href="/daily-expenses" />
 
             {isAdminOrDesignerOrDeveloper && (
               <SidebarLink
