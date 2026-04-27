@@ -19,9 +19,7 @@ import {
   getExpenseById,
   updateExpense,
   deleteExpense,
-
   // Asset
-
   createAsset,
   getAssets,
   getAssetById,
@@ -36,6 +34,7 @@ import {
   // Summary
   getFinancialSummary,
 } from "../controllers/financeController";
+import dailyExpenseRoutes from "./dailyExpenseRoutes";
 
 const router = express.Router();
 
@@ -79,5 +78,8 @@ router.delete("/liability/:id", deleteLiability);
 
 // ==================== SUMMARY ROUTE ====================
 router.get("/summary", getFinancialSummary);
+
+// ==================== DAILY EXPENSE ROUTES ====================
+router.use("/daily-expenses", dailyExpenseRoutes);
 
 export default router;

@@ -88,6 +88,67 @@ export interface FinancialSummary {
   };
 }
 
+export interface DailyExpense {
+  id: string;
+  name: string;
+  amount: number;
+  category: string;
+  date: string;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  color?: string;
+  icon?: string;
+  source?: string;
+}
+
+export interface BudgetSetting {
+  id: string;
+  category: string;
+  budgetLimit: number;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RemainingAmountResponse {
+  category: string;
+  totalSpent: number;
+  budgetLimit: number;
+  remaining: number;
+  percentageUsed: number;
+  startDate: string;
+  endDate: string;
+}
+
+export interface AllRemainingAmountsResponse {
+  summary: {
+    totalBudget: number;
+    totalSpent: number;
+    totalRemaining: number;
+    averagePercentageUsed: number;
+  };
+  categories: Array<{
+    category: string;
+    totalSpent: number;
+    budgetLimit: number;
+    remaining: number;
+    percentageUsed: number;
+    recentExpenses: DailyExpense[];
+  }>;
+}
+
+export interface DailyExpenseResponse extends DailyExpense {
+  remainingAmount?: number;
+  totalSpentThisMonth?: number;
+  budgetLimit?: number;
+}
+
 export const api = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -109,6 +170,10 @@ export const api = createApi({
     "Expense",
     "Asset",
     "Liability",
+    "ExpenseCategory",
+    "DailyExpense",
+    "BudgetSetting",
+    "RemainingAmount",
   ],
   endpoints: (build) => ({
     // User endpoints (existing)
@@ -322,6 +387,110 @@ deleteAsset: build.mutation<void, string>({
       }),
       invalidatesTags: ["Liability"],
     }),
+
+
+ getExpenseCategories: build.query<ExpenseCategory[], void>({
+      query: () => "finance/daily-expenses/categories",
+      providesTags: ["ExpenseCategory"],
+    }),
+    
+    // Get all daily expenses
+    getDailyExpenses: build.query<{
+      data: DailyExpense[];
+      pagination: any;
+      categoryStats: any[];
+    }, { page?: number; limit?: number; category?: string; month?: number; year?: number }>({
+      query: (params) => ({
+        url: "finance/daily-expenses",
+        params,
+      }),
+      providesTags: ["DailyExpense"],
+    }),
+    
+    // Get single daily expense
+    getDailyExpenseById: build.query<DailyExpenseResponse, string>({
+      query: (id) => `finance/daily-expenses/${id}`,
+      providesTags: ["DailyExpense"],
+    }),
+    
+    // Create daily expense
+    createDailyExpense: build.mutation<
+      DailyExpenseResponse,
+      { name: string; amount: number; category: string; date?: string }
+    >({
+      query: (body) => ({
+        url: "finance/daily-expenses",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["DailyExpense", "ExpenseCategory"],
+    }),
+    
+    // Update daily expense
+    updateDailyExpense: build.mutation<
+      DailyExpenseResponse,
+      { id: string; name?: string; amount?: number; category?: string; date?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `finance/daily-expenses/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["DailyExpense", "ExpenseCategory"],
+    }),
+    
+    // Delete daily expense
+    deleteDailyExpense: build.mutation<{ message: string; remainingAmount?: number }, string>({
+      query: (id) => ({
+        url: `finance/daily-expenses/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["DailyExpense", "ExpenseCategory"],
+    }),
+    
+    // Get remaining amount for a category
+    getRemainingAmount: build.query<
+      RemainingAmountResponse,
+      { category: string; month?: number; year?: number }
+    >({
+      query: ({ category, month, year }) => ({
+        url: `finance/daily-expenses/remaining/${category}`,
+        params: { month, year },
+      }),
+      providesTags: ["DailyExpense", "BudgetSetting"],
+    }),
+    
+    // Get all remaining amounts (dashboard view)
+    getAllRemainingAmounts: build.query<AllRemainingAmountsResponse, void>({
+      query: () => "finance/daily-expenses/remaining/all",
+      providesTags: ["DailyExpense", "BudgetSetting"],
+    }),
+    
+    // Budget settings
+    getBudgetSettings: build.query<BudgetSetting[], void>({
+      query: () => "finance/daily-expenses/budget",
+      providesTags: ["BudgetSetting"],
+    }),
+    
+    setBudgetLimit: build.mutation<
+      BudgetSetting,
+      { category: string; budgetLimit: number }
+    >({
+      query: (body) => ({
+        url: "finance/daily-expenses/budget",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["BudgetSetting", "DailyExpense"],
+    }),
+    
+    deleteBudgetSetting: build.mutation<void, string>({
+      query: (category) => ({
+        url: `finance/daily-expenses/budget/${category}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["BudgetSetting", "DailyExpense"],
+    }),
   }),
 });
 
@@ -354,4 +523,15 @@ export const {
   useCreateLiabilityMutation,
   useUpdateLiabilityMutation,
   useDeleteLiabilityMutation,
+  useGetExpenseCategoriesQuery,
+  useGetDailyExpensesQuery,
+  useGetDailyExpenseByIdQuery,
+  useCreateDailyExpenseMutation,
+  useUpdateDailyExpenseMutation,
+  useDeleteDailyExpenseMutation,
+  useGetRemainingAmountQuery,
+  useGetAllRemainingAmountsQuery,
+  useGetBudgetSettingsQuery,
+  useSetBudgetLimitMutation,
+  useDeleteBudgetSettingMutation,
 } = api;

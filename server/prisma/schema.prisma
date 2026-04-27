@@ -23,7 +23,7 @@ model User {
   profilePictureUrl   String?
   password            String
   role                Role      @default(USER)
-    failedLoginAttempts   Int                   @default(0)
+  failedLoginAttempts   Int                   @default(0)
   lastLogin             DateTime?
   accountLockedUntil    DateTime?
   createdAt           DateTime  @default(now())
@@ -36,6 +36,7 @@ model User {
   liabilities       Liability[]
   dailyExpenses     DailyExpense[]
   expenseCategories ExpenseCategory[]
+  budgetSettings    BudgetSetting[]
 }
 
 enum Role {
@@ -101,28 +102,40 @@ model Liability {
   updatedAt DateTime @updatedAt
 }
 
-// Daily Expenses with category
+// Daily Expenses with category and remaining amount calculation
 model DailyExpense {
-  id       String   @id @default(cuid())
-  name     String
-  amount   Float
-  category String // e.g., "Food", "Transport", "Entertainment", "Shopping"
-  date     DateTime @default(now())
-  userId   Int
-  user     User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  name      String
+  amount    Float
+  category  String   // References ExpenseCategory name
+  date      DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Expense Categories for dropdown
+// Expense Categories for dropdown - gets names from Expense model
 model ExpenseCategory {
-  id     String  @id @default(cuid())
-  name   String  @unique
-  color  String? // Optional color code for UI
-  icon   String? // Optional icon name
-  userId Int?
-  user   User?   @relation(fields: [userId], references: [userId])
+  id        String   @id @default(cuid())
+  name      String   @unique  // This should match Expense names
+  color     String?  // Optional color code for UI
+  icon      String?  // Optional icon name
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Budget Settings for remaining amount calculation
+model BudgetSetting {
+  id        String   @id @default(cuid())
+  category  String   @unique  // Expense category name
+  budgetLimit Float   // Monthly budget limit
+  userId    Int
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
