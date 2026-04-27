@@ -48,8 +48,6 @@ const Dashboard = () => {
   const [updateExpense] = useUpdateExpenseMutation();
   const [deleteExpense] = useDeleteExpenseMutation();
 
- const { data: assetsData } = useGetAssetsQuery();
- const assets = Array.isArray(assetsData) ? assetsData : [];
   const [createAsset] = useCreateAssetMutation();
   const [updateAsset] = useUpdateAssetMutation();
   const [deleteAsset] = useDeleteAssetMutation();
@@ -59,9 +57,11 @@ const Dashboard = () => {
   const [deleteLiability] = useDeleteLiabilityMutation();
 
   // Transform data for FinanceCard components
+
   const earnedIncomes = financialData?.details?.earnedIncomes || [];
   const passiveIncomes = financialData?.details?.passiveIncomes || [];
   const expenses = financialData?.details?.expenses || [];
+    const assets = financialData?.details?.assets || [];
   const liabilities = financialData?.details?.liabilities || [];
 
   // Combine all incomes

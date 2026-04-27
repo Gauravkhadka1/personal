@@ -83,6 +83,7 @@ export interface FinancialSummary {
     earnedIncomes: EarnedIncome[];
     passiveIncomes: PassiveIncome[];
     expenses: Expense[];
+       assets: Asset[];
     liabilities: Liability[];
   };
 }
