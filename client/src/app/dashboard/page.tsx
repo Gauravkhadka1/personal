@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import FinanceCard from "@/components/FinanceCard";
 import {
-    useGetUsersQuery,
+  useGetUsersQuery,
   useGetFinancialSummaryQuery,
   useCreateEarnedIncomeMutation,
   useUpdateEarnedIncomeMutation,
@@ -28,9 +28,29 @@ import {
 } from "@/state/api";
 import { useAuth } from "../../context/AuthContext";
 import withRoleAuth from "../../hoc/withRoleAuth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Dashboard = () => {
-    const { user } = useAuth();
+  const { user } = useAuth();
+  
+  // State for delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{
+    id: string;
+    name: string;
+    type: 'income' | 'expense' | 'asset' | 'liability';
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Fetch financial summary
   const {
     data: financialData,
@@ -57,11 +77,10 @@ const Dashboard = () => {
   const [deleteLiability] = useDeleteLiabilityMutation();
 
   // Transform data for FinanceCard components
-
   const earnedIncomes = financialData?.details?.earnedIncomes || [];
   const passiveIncomes = financialData?.details?.passiveIncomes || [];
   const expenses = financialData?.details?.expenses || [];
-    const assets = financialData?.details?.assets || [];
+  const assets = financialData?.details?.assets || [];
   const liabilities = financialData?.details?.liabilities || [];
 
   // Combine all incomes
@@ -75,6 +94,42 @@ const Dashboard = () => {
   const totalExpenses = financialData?.summary?.totalExpenses || 0;
   const totalLiabilities = financialData?.summary?.totalLiabilities || 0;
   const totalAssets = financialData?.summary?.totalAssets || 0;
+
+  // Generic delete handler that opens confirmation dialog
+  const handleDeleteClick = (id: string, name: string, type: 'income' | 'expense' | 'asset' | 'liability') => {
+    setItemToDelete({ id, name, type });
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirm delete handler
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      switch (itemToDelete.type) {
+        case 'income':
+          await deleteEarnedIncome(itemToDelete.id).unwrap();
+          break;
+        case 'expense':
+          await deleteExpense(itemToDelete.id).unwrap();
+          break;
+        case 'asset':
+          await deleteAsset(itemToDelete.id).unwrap();
+          break;
+        case 'liability':
+          await deleteLiability(itemToDelete.id).unwrap();
+          break;
+      }
+      refetch();
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
+    } catch (err) {
+      console.error(`Failed to delete ${itemToDelete.type}:`, err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Handlers for Income
   const handleAddIncome = async (data: { name: string; amount?: number; value?: number }) => {
@@ -103,15 +158,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleDeleteIncome = async (id: string) => {
-    try {
-      await deleteEarnedIncome(id).unwrap();
-      refetch();
-    } catch (err) {
-      console.error("Failed to delete income:", err);
-    }
-  };
-
   // Handlers for Expense
   const handleAddExpense = async (data: { name: string; amount?: number; value?: number }) => {
     try {
@@ -131,15 +177,6 @@ const Dashboard = () => {
       refetch();
     } catch (err) {
       console.error("Failed to update expense:", err);
-    }
-  };
-
-  const handleDeleteExpense = async (id: string) => {
-    try {
-      await deleteExpense(id).unwrap();
-      refetch();
-    } catch (err) {
-      console.error("Failed to delete expense:", err);
     }
   };
 
@@ -165,15 +202,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleDeleteAsset = async (id: string) => {
-    try {
-      await deleteAsset(id).unwrap();
-      refetch();
-    } catch (err) {
-      console.error("Failed to delete asset:", err);
-    }
-  };
-
   // Handlers for Liability
   const handleAddLiability = async (data: { name: string; amount?: number; value?: number }) => {
     try {
@@ -193,15 +221,6 @@ const Dashboard = () => {
       refetch();
     } catch (err) {
       console.error("Failed to update liability:", err);
-    }
-  };
-
-  const handleDeleteLiability = async (id: string) => {
-    try {
-      await deleteLiability(id).unwrap();
-      refetch();
-    } catch (err) {
-      console.error("Failed to delete liability:", err);
     }
   };
 
@@ -232,6 +251,17 @@ const Dashboard = () => {
       </div>
     );
   }
+
+  // Get the category name for display
+  const getCategoryName = (type: string) => {
+    switch (type) {
+      case 'income': return 'Income';
+      case 'expense': return 'Expense';
+      case 'asset': return 'Asset';
+      case 'liability': return 'Liability';
+      default: return 'Item';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -316,7 +346,7 @@ const Dashboard = () => {
           total={totalIncome}
           onAdd={handleAddIncome}
           onUpdate={handleUpdateIncome}
-          onDelete={handleDeleteIncome}
+          onDelete={(id, name) => handleDeleteClick(id, name, 'income')}
           icon={TrendingUp}
           color="text-green-600"
           bgColor="bg-white"
@@ -329,7 +359,7 @@ const Dashboard = () => {
           total={totalExpenses}
           onAdd={handleAddExpense}
           onUpdate={handleUpdateExpense}
-          onDelete={handleDeleteExpense}
+          onDelete={(id, name) => handleDeleteClick(id, name, 'expense')}
           icon={TrendingDown}
           color="text-red-600"
           bgColor="bg-white"
@@ -347,7 +377,7 @@ const Dashboard = () => {
           total={totalAssets}
           onAdd={handleAddAsset}
           onUpdate={handleUpdateAsset}
-          onDelete={handleDeleteAsset}
+          onDelete={(id, name) => handleDeleteClick(id, name, 'asset')}
           icon={Wallet}
           color="text-blue-600"
           bgColor="bg-white"
@@ -364,7 +394,7 @@ const Dashboard = () => {
           total={totalLiabilities}
           onAdd={handleAddLiability}
           onUpdate={handleUpdateLiability}
-          onDelete={handleDeleteLiability}
+          onDelete={(id, name) => handleDeleteClick(id, name, 'liability')}
           icon={AlertTriangle}
           color="text-orange-600"
           bgColor="bg-white"
@@ -380,6 +410,37 @@ const Dashboard = () => {
           <RefreshCw className="h-5 w-5" />
         </button>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="sm:max-w-[425px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {itemToDelete && getCategoryName(itemToDelete.type)}</AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Are you sure you want to delete <span className="font-semibold text-red-600">"{itemToDelete?.name}"</span>?
+              <br />
+              <span className="text-sm text-gray-500 mt-2 block">
+                This action cannot be undone.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3">
+            <AlertDialogCancel 
+              onClick={() => setDeleteDialogOpen(false)}
+              className="mt-0"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 text-white hover:bg-red-700"
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

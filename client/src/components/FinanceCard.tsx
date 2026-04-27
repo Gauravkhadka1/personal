@@ -32,7 +32,7 @@ interface FinanceCardProps {
   total: number;
   onAdd: (data: { name: string; amount?: number; value?: number }) => void;
   onUpdate: (id: string, data: { name: string; amount?: number; value?: number }) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, name: string) => void; // Changed to accept name parameter
   icon?: LucideIcon;
   color?: string;
   bgColor?: string;
@@ -250,7 +250,7 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
                       <Pencil className="w-4 h-4 text-blue-500" />
                     </button>
                     <button
-                      onClick={() => onDelete(item.id)}
+                      onClick={() => onDelete(item.id, item.name)} // Pass both id and name
                       className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4 text-red-500" />
