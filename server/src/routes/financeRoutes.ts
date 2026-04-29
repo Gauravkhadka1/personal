@@ -14,11 +14,11 @@ import {
   updatePassiveIncome,
   deletePassiveIncome,
   // Expense
-  createExpense,
-  getExpenses,
-  getExpenseById,
-  updateExpense,
-  deleteExpense,
+  createExpenseCategory,
+  getExpenseCategories,
+  getExpenseCategoryById,
+  updateExpenseCategory,
+  deleteExpenseCategory,
   // Asset
   createAsset,
   getAssets,
@@ -34,7 +34,15 @@ import {
   // Summary
   getFinancialSummary,
 } from "../controllers/financeController";
-import dailyExpenseRoutes from "./dailyExpenseRoutes";
+
+import {
+  createDailyExpense,
+  getDailyExpenses,
+  getDailyExpenseById,
+  updateDailyExpense,
+  deleteDailyExpense,
+  getExpenseCategorySummary,
+} from "../controllers/dailyExpenseController";
 
 const router = express.Router();
 
@@ -56,11 +64,11 @@ router.put("/passive-income/:id", updatePassiveIncome);
 router.delete("/passive-income/:id", deletePassiveIncome);
 
 // ==================== EXPENSE ROUTES ====================
-router.post("/expense", createExpense);
-router.get("/expense", getExpenses);
-router.get("/expense/:id", getExpenseById);
-router.put("/expense/:id", updateExpense);
-router.delete("/expense/:id", deleteExpense);
+router.post('/expense-category', createExpenseCategory);
+router.get('/expense-category', getExpenseCategories);
+router.get('/expense-category/:id', getExpenseCategoryById);
+router.put('/expense-category/:id', updateExpenseCategory);
+router.delete('/expense-category/:id', deleteExpenseCategory);
 
 // ==================== ASSET ROUTES ====================
 router.post("/asset", createAsset);
@@ -76,10 +84,18 @@ router.get("/liability/:id", getLiabilityById);
 router.put("/liability/:id", updateLiability);
 router.delete("/liability/:id", deleteLiability);
 
+// ==================== DAILY EXPENSE ROUTES ====================
+router.post("/daily-expense", createDailyExpense);
+router.get("/daily-expense", getDailyExpenses);
+router.get("/daily-expense/:id", getDailyExpenseById);
+router.put("/daily-expense/:id", updateDailyExpense);
+router.delete("/daily-expense/:id", deleteDailyExpense);
+
+// ==================== EXPENSE CATEGORY SUMMARY ====================
+router.get("/expense-category-summary", getExpenseCategorySummary);
+
 // ==================== SUMMARY ROUTE ====================
 router.get("/summary", getFinancialSummary);
 
-// ==================== DAILY EXPENSE ROUTES ====================
-router.use("/daily-expenses", dailyExpenseRoutes);
 
 export default router;

@@ -104,7 +104,6 @@ export const updateEarnedIncome = async (req: Request, res: Response): Promise<v
     const { id } = req.params;
     const { name, amount } = req.body;
 
-    // Check if earned income exists and belongs to user
     const existingIncome = await prisma.earnedIncome.findFirst({
       where: {
         id,
@@ -145,7 +144,6 @@ export const deleteEarnedIncome = async (req: Request, res: Response): Promise<v
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    // Check if earned income exists and belongs to user
     const existingIncome = await prisma.earnedIncome.findFirst({
       where: {
         id,
@@ -270,7 +268,6 @@ export const updatePassiveIncome = async (req: Request, res: Response): Promise<
     const { id } = req.params;
     const { name, amount } = req.body;
 
-    // Check if passive income exists and belongs to user
     const existingIncome = await prisma.passiveIncome.findFirst({
       where: {
         id,
@@ -311,7 +308,6 @@ export const deletePassiveIncome = async (req: Request, res: Response): Promise<
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    // Check if passive income exists and belongs to user
     const existingIncome = await prisma.passiveIncome.findFirst({
       where: {
         id,
@@ -335,9 +331,9 @@ export const deletePassiveIncome = async (req: Request, res: Response): Promise<
   }
 };
 
-// ==================== EXPENSE CONTROLLERS ====================
+// ==================== EXPENSE CATEGORY CONTROLLERS (formerly Expense) ====================
 
-export const createExpense = async (req: Request, res: Response): Promise<void> => {
+export const createExpenseCategory = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
     const { name, amount } = req.body;
@@ -352,7 +348,7 @@ export const createExpense = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const expense = await prisma.expense.create({
+    const expenseCategory = await prisma.expenseCategory.create({
       data: {
         name,
         amount,
@@ -361,16 +357,16 @@ export const createExpense = async (req: Request, res: Response): Promise<void> 
     });
 
     res.status(201).json({
-      message: "Expense created successfully",
-      data: expense,
+      message: "Expense category created successfully",
+      data: expenseCategory,
     });
   } catch (error: any) {
-    console.error("Error creating expense:", error);
-    res.status(500).json({ message: `Error creating expense: ${error.message}` });
+    console.error("Error creating expense category:", error);
+    res.status(500).json({ message: `Error creating expense category: ${error.message}` });
   }
 };
 
-export const getExpenses = async (req: Request, res: Response): Promise<void> => {
+export const getExpenseCategories = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
     const { page = 1, limit = 10 } = req.query;
@@ -379,20 +375,20 @@ export const getExpenses = async (req: Request, res: Response): Promise<void> =>
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    const [expenses, total] = await Promise.all([
-      prisma.expense.findMany({
+    const [expenseCategories, total] = await Promise.all([
+      prisma.expenseCategory.findMany({
         where: { userId: Number(userId) },
         skip,
         take: limitNum,
         orderBy: { createdAt: 'desc' },
       }),
-      prisma.expense.count({
+      prisma.expenseCategory.count({
         where: { userId: Number(userId) },
       }),
     ]);
 
     res.json({
-      data: expenses,
+      data: expenseCategories,
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -401,51 +397,50 @@ export const getExpenses = async (req: Request, res: Response): Promise<void> =>
       },
     });
   } catch (error: any) {
-    console.error("Error fetching expenses:", error);
-    res.status(500).json({ message: `Error fetching expenses: ${error.message}` });
+    console.error("Error fetching expense categories:", error);
+    res.status(500).json({ message: `Error fetching expense categories: ${error.message}` });
   }
 };
 
-export const getExpenseById = async (req: Request, res: Response): Promise<void> => {
+export const getExpenseCategoryById = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    const expense = await prisma.expense.findFirst({
+    const expenseCategory = await prisma.expenseCategory.findFirst({
       where: {
         id,
         userId: Number(userId),
       },
     });
 
-    if (!expense) {
-      res.status(404).json({ message: "Expense not found" });
+    if (!expenseCategory) {
+      res.status(404).json({ message: "Expense category not found" });
       return;
     }
 
-    res.json({ data: expense });
+    res.json({ data: expenseCategory });
   } catch (error: any) {
-    console.error("Error fetching expense:", error);
-    res.status(500).json({ message: `Error fetching expense: ${error.message}` });
+    console.error("Error fetching expense category:", error);
+    res.status(500).json({ message: `Error fetching expense category: ${error.message}` });
   }
 };
 
-export const updateExpense = async (req: Request, res: Response): Promise<void> => {
+export const updateExpenseCategory = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
     const { name, amount } = req.body;
 
-    // Check if expense exists and belongs to user
-    const existingExpense = await prisma.expense.findFirst({
+    const existingExpenseCategory = await prisma.expenseCategory.findFirst({
       where: {
         id,
         userId: Number(userId),
       },
     });
 
-    if (!existingExpense) {
-      res.status(404).json({ message: "Expense not found" });
+    if (!existingExpenseCategory) {
+      res.status(404).json({ message: "Expense category not found" });
       return;
     }
 
@@ -454,54 +449,51 @@ export const updateExpense = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const updatedExpense = await prisma.expense.update({
+    const updatedExpenseCategory = await prisma.expenseCategory.update({
       where: { id },
       data: {
-        name: name || existingExpense.name,
-        amount: amount !== undefined ? amount : existingExpense.amount,
+        name: name || existingExpenseCategory.name,
+        amount: amount !== undefined ? amount : existingExpenseCategory.amount,
       },
     });
 
     res.json({
-      message: "Expense updated successfully",
-      data: updatedExpense,
+      message: "Expense category updated successfully",
+      data: updatedExpenseCategory,
     });
   } catch (error: any) {
-    console.error("Error updating expense:", error);
-    res.status(500).json({ message: `Error updating expense: ${error.message}` });
+    console.error("Error updating expense category:", error);
+    res.status(500).json({ message: `Error updating expense category: ${error.message}` });
   }
 };
 
-export const deleteExpense = async (req: Request, res: Response): Promise<void> => {
+export const deleteExpenseCategory = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    // Check if expense exists and belongs to user
-    const existingExpense = await prisma.expense.findFirst({
+    const existingExpenseCategory = await prisma.expenseCategory.findFirst({
       where: {
         id,
         userId: Number(userId),
       },
     });
 
-    if (!existingExpense) {
-      res.status(404).json({ message: "Expense not found" });
+    if (!existingExpenseCategory) {
+      res.status(404).json({ message: "Expense category not found" });
       return;
     }
 
-    await prisma.expense.delete({
+    await prisma.expenseCategory.delete({
       where: { id },
     });
 
-    res.json({ message: "Expense deleted successfully" });
+    res.json({ message: "Expense category deleted successfully" });
   } catch (error: any) {
-    console.error("Error deleting expense:", error);
-    res.status(500).json({ message: `Error deleting expense: ${error.message}` });
+    console.error("Error deleting expense category:", error);
+    res.status(500).json({ message: `Error deleting expense category: ${error.message}` });
   }
 };
-
-// Add these after the Liability controllers
 
 // ==================== ASSET CONTROLLERS ====================
 
@@ -604,7 +596,6 @@ export const updateAsset = async (req: Request, res: Response): Promise<void> =>
     const { id } = req.params;
     const { name, value } = req.body;
 
-    // Check if asset exists and belongs to user
     const existingAsset = await prisma.asset.findFirst({
       where: {
         id,
@@ -645,7 +636,6 @@ export const deleteAsset = async (req: Request, res: Response): Promise<void> =>
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    // Check if asset exists and belongs to user
     const existingAsset = await prisma.asset.findFirst({
       where: {
         id,
@@ -770,7 +760,6 @@ export const updateLiability = async (req: Request, res: Response): Promise<void
     const { id } = req.params;
     const { name, value } = req.body;
 
-    // Check if liability exists and belongs to user
     const existingLiability = await prisma.liability.findFirst({
       where: {
         id,
@@ -811,7 +800,6 @@ export const deleteLiability = async (req: Request, res: Response): Promise<void
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    // Check if liability exists and belongs to user
     const existingLiability = await prisma.liability.findFirst({
       where: {
         id,
@@ -841,17 +829,17 @@ export const getFinancialSummary = async (req: Request, res: Response): Promise<
   try {
     const userId = (req as any).userId;
 
-    const [earnedIncomes, passiveIncomes, expenses, assets, liabilities] = await Promise.all([
+    const [earnedIncomes, passiveIncomes, expenseCategories, assets, liabilities] = await Promise.all([
       prisma.earnedIncome.findMany({ where: { userId: Number(userId) } }),
       prisma.passiveIncome.findMany({ where: { userId: Number(userId) } }),
-      prisma.expense.findMany({ where: { userId: Number(userId) } }),
+      prisma.expenseCategory.findMany({ where: { userId: Number(userId) } }),
       prisma.asset.findMany({ where: { userId: Number(userId) } }),
       prisma.liability.findMany({ where: { userId: Number(userId) } }),
     ]);
 
     const totalEarnedIncome = earnedIncomes.reduce((sum, item) => sum + item.amount, 0);
     const totalPassiveIncome = passiveIncomes.reduce((sum, item) => sum + item.amount, 0);
-    const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
+    const totalExpenses = expenseCategories.reduce((sum, item) => sum + item.amount, 0);
     const totalAssets = assets.reduce((sum, item) => sum + item.value, 0);
     const totalLiabilities = liabilities.reduce((sum, item) => sum + item.value, 0);
     
@@ -873,7 +861,7 @@ export const getFinancialSummary = async (req: Request, res: Response): Promise<
       details: {
         earnedIncomes,
         passiveIncomes,
-        expenses,
+        expenseCategories,
         assets,
         liabilities,
       },
