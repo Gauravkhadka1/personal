@@ -373,34 +373,98 @@ export const createExpenseCategory = async (req: Request, res: Response): Promis
   }
 };
 
+// Replace your existing getExpenseCategories with this enhanced version
 export const getExpenseCategories = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
     const { page = 1, limit = 10 } = req.query;
+    
+    // Get date filter from middleware
+    const nepaliFilter = (req as any).nepaliFilter;
+    const dateWhereClause: any = {};
+    
+    if (nepaliFilter?.startDate && nepaliFilter?.endDate) {
+      dateWhereClause.date = {
+        gte: nepaliFilter.startDate,
+        lte: nepaliFilter.endDate,
+      };
+    } else if (nepaliFilter?.startDate) {
+      dateWhereClause.date = { gte: nepaliFilter.startDate };
+    } else if (nepaliFilter?.endDate) {
+      dateWhereClause.date = { lte: nepaliFilter.endDate };
+    }
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    const [expenseCategories, total] = await Promise.all([
-      prisma.expenseCategory.findMany({
-        where: { userId: Number(userId) },
-        skip,
-        take: limitNum,
-        orderBy: { date: 'desc' },
-      }),
-      prisma.expenseCategory.count({
-        where: { userId: Number(userId) },
-      }),
-    ]);
+    const whereClause: any = { 
+      userId: Number(userId),
+      ...dateWhereClause,
+    };
+
+    // Get expense categories with their daily expenses
+    const expenseCategories = await prisma.expenseCategory.findMany({
+      where: whereClause,
+      skip,
+      take: limitNum,
+      orderBy: { date: 'desc' },
+      include: {
+        dailyExpenses: {
+          where: {
+            userId: Number(userId),
+            ...dateWhereClause,
+          },
+          select: {
+            amount: true,
+          },
+        },
+      },
+    });
+
+    const total = await prisma.expenseCategory.count({ where: whereClause });
+
+    // Calculate spent and remaining for each category
+    const categoriesWithBudget = expenseCategories.map(category => {
+      const spent = category.dailyExpenses.reduce((sum, de) => sum + de.amount, 0);
+      const remaining = category.amount - spent;
+      const percentageUsed = category.amount > 0 ? (spent / category.amount) * 100 : 0;
+      
+      let status: 'overspent' | 'warning' | 'good' = 'good';
+      if (remaining < 0) {
+        status = 'overspent';
+      } else if (percentageUsed >= 80) {
+        status = 'warning';
+      }
+
+      return {
+        id: category.id,
+        name: category.name,
+        budget: category.amount,
+        spent,
+        remaining,
+        percentageUsed: parseFloat(percentageUsed.toFixed(2)),
+        status,
+        date: category.date,
+      };
+    });
 
     res.json({
-      data: expenseCategories,
+      data: categoriesWithBudget,
       pagination: {
         page: pageNum,
         limit: limitNum,
         total,
         totalPages: Math.ceil(total / limitNum),
+      },
+      filter: {
+        nepaliYear: nepaliFilter?.nepaliYear,
+        nepaliMonth: nepaliFilter?.nepaliMonth,
+        nepaliMonthName: nepaliFilter?.nepaliMonthName,
+        dateRange: nepaliFilter?.startDate && nepaliFilter?.endDate ? {
+          start: nepaliFilter.startDate,
+          end: nepaliFilter.endDate,
+        } : null,
       },
     });
   } catch (error: any) {

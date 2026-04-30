@@ -147,6 +147,17 @@ export interface FilteredResponse<T> {
   summary?: any;
 }
 
+export interface ExpenseCategoryWithBudget {
+  id: string;
+  name: string;
+  budget: number;
+  spent: number;
+  remaining: number;
+  percentageUsed: number;
+  status: 'overspent' | 'warning' | 'good';
+  date: string;
+}
+
 export const api = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -317,13 +328,21 @@ export const api = createApi({
     }),
 
     // Expense Category
-    getExpenseCategories: build.query<
-      { data: ExpenseCategory[]; pagination: { page: number; limit: number; total: number; totalPages: number } },
-      void
-    >({
-      query: () => "finance/expense-category",
-      providesTags: ["ExpenseCategory"],
-    }),
+// Updated getExpenseCategories query
+getExpenseCategories: build.query<
+  { 
+    data: ExpenseCategoryWithBudget[]; 
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+    filter: any;
+  },
+  NepaliFilter
+>({
+  query: (params) => ({
+    url: "finance/expense-category",
+    params: params || {},
+  }),
+  providesTags: ["ExpenseCategory"],
+}),
     createExpenseCategory: build.mutation<ExpenseCategory,   { name: string; amount: number; date?: string }>({
       query: (body) => ({
         url: "finance/expense-category",

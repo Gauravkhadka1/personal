@@ -1,4 +1,5 @@
 "use strict";
+// server/src/controllers/financeController.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -9,14 +10,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getFinancialSummary = exports.deleteLiability = exports.updateLiability = exports.getLiabilityById = exports.getLiabilities = exports.createLiability = exports.deleteAsset = exports.updateAsset = exports.getAssetById = exports.getAssets = exports.createAsset = exports.deleteExpense = exports.updateExpense = exports.getExpenseById = exports.getExpenses = exports.createExpense = exports.deletePassiveIncome = exports.updatePassiveIncome = exports.getPassiveIncomeById = exports.getPassiveIncomes = exports.createPassiveIncome = exports.deleteEarnedIncome = exports.updateEarnedIncome = exports.getEarnedIncomeById = exports.getEarnedIncomes = exports.createEarnedIncome = void 0;
+exports.getFinancialSummary = exports.deleteLiability = exports.updateLiability = exports.getLiabilityById = exports.getLiabilities = exports.createLiability = exports.deleteAsset = exports.updateAsset = exports.getAssetById = exports.getAssets = exports.createAsset = exports.deleteExpenseCategory = exports.updateExpenseCategory = exports.getExpenseCategoryById = exports.getExpenseCategories = exports.createExpenseCategory = exports.deletePassiveIncome = exports.updatePassiveIncome = exports.getPassiveIncomeById = exports.getPassiveIncomes = exports.createPassiveIncome = exports.deleteEarnedIncome = exports.updateEarnedIncome = exports.getEarnedIncomeById = exports.getEarnedIncomes = exports.createEarnedIncome = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 // ==================== EARNED INCOME CONTROLLERS ====================
 const createEarnedIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.userId;
-        const { name, amount } = req.body;
+        const { name, amount, date } = req.body;
         if (!name || amount === undefined) {
             res.status(400).json({ message: "Name and amount are required" });
             return;
@@ -30,6 +31,7 @@ const createEarnedIncome = (req, res) => __awaiter(void 0, void 0, void 0, funct
                 name,
                 amount,
                 userId: Number(userId),
+                date: date ? new Date(date) : new Date(),
             },
         });
         res.status(201).json({
@@ -55,7 +57,7 @@ const getEarnedIncomes = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 where: { userId: Number(userId) },
                 skip,
                 take: limitNum,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { date: 'desc' },
             }),
             prisma.earnedIncome.count({
                 where: { userId: Number(userId) },
@@ -103,8 +105,7 @@ const updateEarnedIncome = (req, res) => __awaiter(void 0, void 0, void 0, funct
     try {
         const userId = req.userId;
         const { id } = req.params;
-        const { name, amount } = req.body;
-        // Check if earned income exists and belongs to user
+        const { name, amount, date } = req.body;
         const existingIncome = yield prisma.earnedIncome.findFirst({
             where: {
                 id,
@@ -124,6 +125,7 @@ const updateEarnedIncome = (req, res) => __awaiter(void 0, void 0, void 0, funct
             data: {
                 name: name || existingIncome.name,
                 amount: amount !== undefined ? amount : existingIncome.amount,
+                date: date ? new Date(date) : existingIncome.date,
             },
         });
         res.json({
@@ -141,7 +143,6 @@ const deleteEarnedIncome = (req, res) => __awaiter(void 0, void 0, void 0, funct
     try {
         const userId = req.userId;
         const { id } = req.params;
-        // Check if earned income exists and belongs to user
         const existingIncome = yield prisma.earnedIncome.findFirst({
             where: {
                 id,
@@ -167,7 +168,7 @@ exports.deleteEarnedIncome = deleteEarnedIncome;
 const createPassiveIncome = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.userId;
-        const { name, amount } = req.body;
+        const { name, amount, date } = req.body;
         if (!name || amount === undefined) {
             res.status(400).json({ message: "Name and amount are required" });
             return;
@@ -181,6 +182,7 @@ const createPassiveIncome = (req, res) => __awaiter(void 0, void 0, void 0, func
                 name,
                 amount,
                 userId: Number(userId),
+                date: date ? new Date(date) : new Date(),
             },
         });
         res.status(201).json({
@@ -206,7 +208,7 @@ const getPassiveIncomes = (req, res) => __awaiter(void 0, void 0, void 0, functi
                 where: { userId: Number(userId) },
                 skip,
                 take: limitNum,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { date: 'desc' },
             }),
             prisma.passiveIncome.count({
                 where: { userId: Number(userId) },
@@ -254,8 +256,7 @@ const updatePassiveIncome = (req, res) => __awaiter(void 0, void 0, void 0, func
     try {
         const userId = req.userId;
         const { id } = req.params;
-        const { name, amount } = req.body;
-        // Check if passive income exists and belongs to user
+        const { name, amount, date } = req.body;
         const existingIncome = yield prisma.passiveIncome.findFirst({
             where: {
                 id,
@@ -275,6 +276,7 @@ const updatePassiveIncome = (req, res) => __awaiter(void 0, void 0, void 0, func
             data: {
                 name: name || existingIncome.name,
                 amount: amount !== undefined ? amount : existingIncome.amount,
+                date: date ? new Date(date) : existingIncome.date,
             },
         });
         res.json({
@@ -292,7 +294,6 @@ const deletePassiveIncome = (req, res) => __awaiter(void 0, void 0, void 0, func
     try {
         const userId = req.userId;
         const { id } = req.params;
-        // Check if passive income exists and belongs to user
         const existingIncome = yield prisma.passiveIncome.findFirst({
             where: {
                 id,
@@ -314,11 +315,11 @@ const deletePassiveIncome = (req, res) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.deletePassiveIncome = deletePassiveIncome;
-// ==================== EXPENSE CONTROLLERS ====================
-const createExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+// ==================== EXPENSE CATEGORY CONTROLLERS ====================
+const createExpenseCategory = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.userId;
-        const { name, amount } = req.body;
+        const { name, amount, date } = req.body;
         if (!name || amount === undefined) {
             res.status(400).json({ message: "Name and amount are required" });
             return;
@@ -327,44 +328,45 @@ const createExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             res.status(400).json({ message: "Amount must be a positive number" });
             return;
         }
-        const expense = yield prisma.expense.create({
+        const expenseCategory = yield prisma.expenseCategory.create({
             data: {
                 name,
                 amount,
                 userId: Number(userId),
+                date: date ? new Date(date) : new Date(),
             },
         });
         res.status(201).json({
-            message: "Expense created successfully",
-            data: expense,
+            message: "Expense category created successfully",
+            data: expenseCategory,
         });
     }
     catch (error) {
-        console.error("Error creating expense:", error);
-        res.status(500).json({ message: `Error creating expense: ${error.message}` });
+        console.error("Error creating expense category:", error);
+        res.status(500).json({ message: `Error creating expense category: ${error.message}` });
     }
 });
-exports.createExpense = createExpense;
-const getExpenses = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.createExpenseCategory = createExpenseCategory;
+const getExpenseCategories = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.userId;
         const { page = 1, limit = 10 } = req.query;
         const pageNum = parseInt(page);
         const limitNum = parseInt(limit);
         const skip = (pageNum - 1) * limitNum;
-        const [expenses, total] = yield Promise.all([
-            prisma.expense.findMany({
+        const [expenseCategories, total] = yield Promise.all([
+            prisma.expenseCategory.findMany({
                 where: { userId: Number(userId) },
                 skip,
                 take: limitNum,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { date: 'desc' },
             }),
-            prisma.expense.count({
+            prisma.expenseCategory.count({
                 where: { userId: Number(userId) },
             }),
         ]);
         res.json({
-            data: expenses,
+            data: expenseCategories,
             pagination: {
                 page: pageNum,
                 limit: limitNum,
@@ -374,103 +376,101 @@ const getExpenses = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         });
     }
     catch (error) {
-        console.error("Error fetching expenses:", error);
-        res.status(500).json({ message: `Error fetching expenses: ${error.message}` });
+        console.error("Error fetching expense categories:", error);
+        res.status(500).json({ message: `Error fetching expense categories: ${error.message}` });
     }
 });
-exports.getExpenses = getExpenses;
-const getExpenseById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.getExpenseCategories = getExpenseCategories;
+const getExpenseCategoryById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.userId;
         const { id } = req.params;
-        const expense = yield prisma.expense.findFirst({
+        const expenseCategory = yield prisma.expenseCategory.findFirst({
             where: {
                 id,
                 userId: Number(userId),
             },
         });
-        if (!expense) {
-            res.status(404).json({ message: "Expense not found" });
+        if (!expenseCategory) {
+            res.status(404).json({ message: "Expense category not found" });
             return;
         }
-        res.json({ data: expense });
+        res.json({ data: expenseCategory });
     }
     catch (error) {
-        console.error("Error fetching expense:", error);
-        res.status(500).json({ message: `Error fetching expense: ${error.message}` });
+        console.error("Error fetching expense category:", error);
+        res.status(500).json({ message: `Error fetching expense category: ${error.message}` });
     }
 });
-exports.getExpenseById = getExpenseById;
-const updateExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.getExpenseCategoryById = getExpenseCategoryById;
+const updateExpenseCategory = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.userId;
         const { id } = req.params;
-        const { name, amount } = req.body;
-        // Check if expense exists and belongs to user
-        const existingExpense = yield prisma.expense.findFirst({
+        const { name, amount, date } = req.body;
+        const existingExpenseCategory = yield prisma.expenseCategory.findFirst({
             where: {
                 id,
                 userId: Number(userId),
             },
         });
-        if (!existingExpense) {
-            res.status(404).json({ message: "Expense not found" });
+        if (!existingExpenseCategory) {
+            res.status(404).json({ message: "Expense category not found" });
             return;
         }
         if (amount !== undefined && (typeof amount !== 'number' || amount <= 0)) {
             res.status(400).json({ message: "Amount must be a positive number" });
             return;
         }
-        const updatedExpense = yield prisma.expense.update({
+        const updatedExpenseCategory = yield prisma.expenseCategory.update({
             where: { id },
             data: {
-                name: name || existingExpense.name,
-                amount: amount !== undefined ? amount : existingExpense.amount,
+                name: name || existingExpenseCategory.name,
+                amount: amount !== undefined ? amount : existingExpenseCategory.amount,
+                date: date ? new Date(date) : existingExpenseCategory.date,
             },
         });
         res.json({
-            message: "Expense updated successfully",
-            data: updatedExpense,
+            message: "Expense category updated successfully",
+            data: updatedExpenseCategory,
         });
     }
     catch (error) {
-        console.error("Error updating expense:", error);
-        res.status(500).json({ message: `Error updating expense: ${error.message}` });
+        console.error("Error updating expense category:", error);
+        res.status(500).json({ message: `Error updating expense category: ${error.message}` });
     }
 });
-exports.updateExpense = updateExpense;
-const deleteExpense = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.updateExpenseCategory = updateExpenseCategory;
+const deleteExpenseCategory = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.userId;
         const { id } = req.params;
-        // Check if expense exists and belongs to user
-        const existingExpense = yield prisma.expense.findFirst({
+        const existingExpenseCategory = yield prisma.expenseCategory.findFirst({
             where: {
                 id,
                 userId: Number(userId),
             },
         });
-        if (!existingExpense) {
-            res.status(404).json({ message: "Expense not found" });
+        if (!existingExpenseCategory) {
+            res.status(404).json({ message: "Expense category not found" });
             return;
         }
-        yield prisma.expense.delete({
+        yield prisma.expenseCategory.delete({
             where: { id },
         });
-        res.json({ message: "Expense deleted successfully" });
+        res.json({ message: "Expense category deleted successfully" });
     }
     catch (error) {
-        console.error("Error deleting expense:", error);
-        res.status(500).json({ message: `Error deleting expense: ${error.message}` });
+        console.error("Error deleting expense category:", error);
+        res.status(500).json({ message: `Error deleting expense category: ${error.message}` });
     }
 });
-exports.deleteExpense = deleteExpense;
-// Add these after the Liability controllers
+exports.deleteExpenseCategory = deleteExpenseCategory;
 // ==================== ASSET CONTROLLERS ====================
 const createAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.userId;
-        const { name, value } = req.body;
+        const { name, value, date } = req.body;
         if (!name || value === undefined) {
             res.status(400).json({ message: "Name and value are required" });
             return;
@@ -484,6 +484,7 @@ const createAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 name,
                 value,
                 userId: Number(userId),
+                date: date ? new Date(date) : new Date(),
             },
         });
         res.status(201).json({
@@ -509,7 +510,7 @@ const getAssets = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 where: { userId: Number(userId) },
                 skip,
                 take: limitNum,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { date: 'desc' },
             }),
             prisma.asset.count({
                 where: { userId: Number(userId) },
@@ -557,8 +558,7 @@ const updateAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     try {
         const userId = req.userId;
         const { id } = req.params;
-        const { name, value } = req.body;
-        // Check if asset exists and belongs to user
+        const { name, value, date } = req.body;
         const existingAsset = yield prisma.asset.findFirst({
             where: {
                 id,
@@ -578,6 +578,7 @@ const updateAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             data: {
                 name: name || existingAsset.name,
                 value: value !== undefined ? value : existingAsset.value,
+                date: date ? new Date(date) : existingAsset.date,
             },
         });
         res.json({
@@ -595,7 +596,6 @@ const deleteAsset = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     try {
         const userId = req.userId;
         const { id } = req.params;
-        // Check if asset exists and belongs to user
         const existingAsset = yield prisma.asset.findFirst({
             where: {
                 id,
@@ -621,7 +621,7 @@ exports.deleteAsset = deleteAsset;
 const createLiability = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.userId;
-        const { name, value } = req.body;
+        const { name, value, date } = req.body;
         if (!name || value === undefined) {
             res.status(400).json({ message: "Name and value are required" });
             return;
@@ -635,6 +635,7 @@ const createLiability = (req, res) => __awaiter(void 0, void 0, void 0, function
                 name,
                 value,
                 userId: Number(userId),
+                date: date ? new Date(date) : new Date(),
             },
         });
         res.status(201).json({
@@ -660,7 +661,7 @@ const getLiabilities = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 where: { userId: Number(userId) },
                 skip,
                 take: limitNum,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { date: 'desc' },
             }),
             prisma.liability.count({
                 where: { userId: Number(userId) },
@@ -708,8 +709,7 @@ const updateLiability = (req, res) => __awaiter(void 0, void 0, void 0, function
     try {
         const userId = req.userId;
         const { id } = req.params;
-        const { name, value } = req.body;
-        // Check if liability exists and belongs to user
+        const { name, value, date } = req.body;
         const existingLiability = yield prisma.liability.findFirst({
             where: {
                 id,
@@ -729,6 +729,7 @@ const updateLiability = (req, res) => __awaiter(void 0, void 0, void 0, function
             data: {
                 name: name || existingLiability.name,
                 value: value !== undefined ? value : existingLiability.value,
+                date: date ? new Date(date) : existingLiability.date,
             },
         });
         res.json({
@@ -746,7 +747,6 @@ const deleteLiability = (req, res) => __awaiter(void 0, void 0, void 0, function
     try {
         const userId = req.userId;
         const { id } = req.params;
-        // Check if liability exists and belongs to user
         const existingLiability = yield prisma.liability.findFirst({
             where: {
                 id,
@@ -772,39 +772,76 @@ exports.deleteLiability = deleteLiability;
 const getFinancialSummary = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.userId;
-        const [earnedIncomes, passiveIncomes, expenses, assets, liabilities] = yield Promise.all([
-            prisma.earnedIncome.findMany({ where: { userId: Number(userId) } }),
-            prisma.passiveIncome.findMany({ where: { userId: Number(userId) } }),
-            prisma.expense.findMany({ where: { userId: Number(userId) } }),
-            prisma.asset.findMany({ where: { userId: Number(userId) } }),
-            prisma.liability.findMany({ where: { userId: Number(userId) } }),
+        const nepaliFilter = req.nepaliFilter;
+        // Build date filter using the 'date' field instead of 'createdAt'
+        const dateWhereClause = {};
+        if ((nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.startDate) && (nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.endDate)) {
+            dateWhereClause.date = {
+                gte: nepaliFilter.startDate,
+                lte: nepaliFilter.endDate,
+            };
+        }
+        else if (nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.startDate) {
+            dateWhereClause.date = { gte: nepaliFilter.startDate };
+        }
+        else if (nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.endDate) {
+            dateWhereClause.date = { lte: nepaliFilter.endDate };
+        }
+        const [earnedIncomes, passiveIncomes, expenseCategories, assets, liabilities] = yield Promise.all([
+            prisma.earnedIncome.findMany({
+                where: Object.assign({ userId: Number(userId) }, dateWhereClause)
+            }),
+            prisma.passiveIncome.findMany({
+                where: Object.assign({ userId: Number(userId) }, dateWhereClause)
+            }),
+            prisma.expenseCategory.findMany({
+                where: Object.assign({ userId: Number(userId) }, dateWhereClause)
+            }),
+            prisma.asset.findMany({
+                where: Object.assign({ userId: Number(userId) }, dateWhereClause)
+            }),
+            prisma.liability.findMany({
+                where: Object.assign({ userId: Number(userId) }, dateWhereClause)
+            }),
         ]);
         const totalEarnedIncome = earnedIncomes.reduce((sum, item) => sum + item.amount, 0);
         const totalPassiveIncome = passiveIncomes.reduce((sum, item) => sum + item.amount, 0);
-        const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
+        const totalExpenses = expenseCategories.reduce((sum, item) => sum + item.amount, 0);
         const totalAssets = assets.reduce((sum, item) => sum + item.value, 0);
         const totalLiabilities = liabilities.reduce((sum, item) => sum + item.value, 0);
         const totalIncome = totalEarnedIncome + totalPassiveIncome;
         const netCashFlow = totalIncome - totalExpenses;
         const netWorth = totalAssets - totalLiabilities;
+        // FIX: Wrap the entire response in a 'data' property
         res.json({
-            summary: {
-                totalEarnedIncome,
-                totalPassiveIncome,
-                totalIncome,
-                totalExpenses,
-                totalAssets,
-                totalLiabilities,
-                netCashFlow,
-                netWorth,
-            },
-            details: {
-                earnedIncomes,
-                passiveIncomes,
-                expenses,
-                assets,
-                liabilities,
-            },
+            data: {
+                filter: {
+                    nepaliYear: nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.nepaliYear,
+                    nepaliMonth: nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.nepaliMonth,
+                    nepaliMonthName: nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.nepaliMonthName,
+                    dateRange: (nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.startDate) && (nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.endDate) ? {
+                        start: nepaliFilter.startDate,
+                        end: nepaliFilter.endDate,
+                    } : null,
+                },
+                summary: {
+                    totalEarnedIncome,
+                    totalPassiveIncome,
+                    totalIncome,
+                    totalExpenses,
+                    totalAssets,
+                    totalLiabilities,
+                    netCashFlow,
+                    netWorth,
+                },
+                details: {
+                    earnedIncomes,
+                    passiveIncomes,
+                    expenseCategories,
+                    assets,
+                    liabilities,
+                },
+            }
         });
     }
     catch (error) {

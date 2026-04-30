@@ -63,7 +63,7 @@ router.delete("/passive-income/:id", deletePassiveIncome);
 
 // ==================== EXPENSE ROUTES ====================
 router.post('/expense-category', createExpenseCategory);
-router.get('/expense-category', getExpenseCategories);
+router.get('/expense-category', parseNepaliDateFilter, getExpenseCategories);
 router.get('/expense-category/:id', getExpenseCategoryById);
 router.put('/expense-category/:id', updateExpenseCategory);
 router.delete('/expense-category/:id', deleteExpenseCategory);

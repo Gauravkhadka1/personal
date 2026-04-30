@@ -9,6 +9,8 @@ CREATE TABLE `User` (
     `password` VARCHAR(191) NOT NULL,
     `role` ENUM('ADMIN', 'USER') NOT NULL DEFAULT 'USER',
     `failedLoginAttempts` INTEGER NOT NULL DEFAULT 0,
+    `lastLogin` DATETIME(3) NULL,
+    `accountLockedUntil` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NULL,
 
@@ -22,6 +24,7 @@ CREATE TABLE `EarnedIncome` (
     `name` VARCHAR(191) NOT NULL,
     `amount` DOUBLE NOT NULL,
     `userId` INTEGER NOT NULL,
+    `date` DATETIME(3) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -34,6 +37,7 @@ CREATE TABLE `PassiveIncome` (
     `name` VARCHAR(191) NOT NULL,
     `amount` DOUBLE NOT NULL,
     `userId` INTEGER NOT NULL,
+    `date` DATETIME(3) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -41,11 +45,12 @@ CREATE TABLE `PassiveIncome` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `Expense` (
+CREATE TABLE `ExpenseCategory` (
     `id` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
     `amount` DOUBLE NOT NULL,
     `userId` INTEGER NOT NULL,
+    `date` DATETIME(3) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -58,6 +63,7 @@ CREATE TABLE `Asset` (
     `name` VARCHAR(191) NOT NULL,
     `value` DOUBLE NOT NULL,
     `userId` INTEGER NOT NULL,
+    `date` DATETIME(3) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -70,6 +76,7 @@ CREATE TABLE `Liability` (
     `name` VARCHAR(191) NOT NULL,
     `value` DOUBLE NOT NULL,
     `userId` INTEGER NOT NULL,
+    `date` DATETIME(3) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -79,28 +86,14 @@ CREATE TABLE `Liability` (
 -- CreateTable
 CREATE TABLE `DailyExpense` (
     `id` VARCHAR(191) NOT NULL,
-    `name` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NOT NULL,
     `amount` DOUBLE NOT NULL,
-    `category` VARCHAR(191) NOT NULL,
-    `date` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `date` DATETIME(3) NOT NULL,
+    `expenseCategoryId` VARCHAR(191) NOT NULL,
     `userId` INTEGER NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
-CREATE TABLE `ExpenseCategory` (
-    `id` VARCHAR(191) NOT NULL,
-    `name` VARCHAR(191) NOT NULL,
-    `color` VARCHAR(191) NULL,
-    `icon` VARCHAR(191) NULL,
-    `userId` INTEGER NULL,
-    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
-
-    UNIQUE INDEX `ExpenseCategory_name_key`(`name`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -111,7 +104,7 @@ ALTER TABLE `EarnedIncome` ADD CONSTRAINT `EarnedIncome_userId_fkey` FOREIGN KEY
 ALTER TABLE `PassiveIncome` ADD CONSTRAINT `PassiveIncome_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`userId`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Expense` ADD CONSTRAINT `Expense_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`userId`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ExpenseCategory` ADD CONSTRAINT `ExpenseCategory_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`userId`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Asset` ADD CONSTRAINT `Asset_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`userId`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -120,7 +113,7 @@ ALTER TABLE `Asset` ADD CONSTRAINT `Asset_userId_fkey` FOREIGN KEY (`userId`) RE
 ALTER TABLE `Liability` ADD CONSTRAINT `Liability_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`userId`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `DailyExpense` ADD CONSTRAINT `DailyExpense_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`userId`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `DailyExpense` ADD CONSTRAINT `DailyExpense_expenseCategoryId_fkey` FOREIGN KEY (`expenseCategoryId`) REFERENCES `ExpenseCategory`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ExpenseCategory` ADD CONSTRAINT `ExpenseCategory_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`userId`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `DailyExpense` ADD CONSTRAINT `DailyExpense_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`userId`) ON DELETE CASCADE ON UPDATE CASCADE;

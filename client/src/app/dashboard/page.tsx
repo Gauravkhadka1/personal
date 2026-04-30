@@ -9,15 +9,23 @@ import {
   Wallet,
   AlertTriangle,
   RefreshCw,
+  Plus,
+  Pencil,
+  Trash2,
+  Calendar,
+  DollarSign,
+  FileText,
 } from "lucide-react";
 import FinanceCard from "@/components/FinanceCard";
 import NepaliDateFilter from "@/components/NepaliDateFilter";
+import ExpenseCategoryCard from "@/components/ExpenseCategoryCard";
 import {
   useGetUsersQuery,
   useGetFinancialSummaryQuery,
   useCreateEarnedIncomeMutation,
   useUpdateEarnedIncomeMutation,
   useDeleteEarnedIncomeMutation,
+  useGetExpenseCategoriesQuery,
   useCreateExpenseCategoryMutation,
   useUpdateExpenseCategoryMutation,
   useDeleteExpenseCategoryMutation,
@@ -29,6 +37,10 @@ import {
   useUpdateLiabilityMutation,
   useDeleteLiabilityMutation,
   useGetExpenseCategorySummaryQuery,
+  useGetDailyExpensesQuery,
+  useCreateDailyExpenseMutation,
+  useUpdateDailyExpenseMutation,
+  useDeleteDailyExpenseMutation,
 } from "@/state/api";
 import { useAuth } from "../../context/AuthContext";
 import withRoleAuth from "../../hoc/withRoleAuth";
@@ -43,7 +55,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Circular Progress Component
+// Circular Progress Component (for other uses if needed)
 const CircularProgress = ({
   percentage,
   size = 120,
@@ -112,13 +124,26 @@ const Dashboard = () => {
   const [itemToDelete, setItemToDelete] = useState<{
     id: string;
     name: string;
-    type: "income" | "expense" | "asset" | "liability";
+    type: "income" | "expense" | "asset" | "liability" | "dailyExpense";
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Expense Category Edit states
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [editExpenseForm, setEditExpenseForm] = useState({
     name: "",
     amount: 0,
+    date: new Date().toISOString().split("T")[0],
+  });
+
+  // Daily Expenses states
+  const [isAddingDailyExpense, setIsAddingDailyExpense] = useState(false);
+  const [editingDailyExpenseId, setEditingDailyExpenseId] = useState<string | null>(null);
+  const [dailyExpenseForm, setDailyExpenseForm] = useState({
+    description: "",
+    amount: 0,
+    date: new Date().toISOString().split("T")[0],
+    expenseCategoryId: "",
   });
 
   const {
@@ -128,8 +153,18 @@ const Dashboard = () => {
     refetch,
   } = useGetFinancialSummaryQuery(filter);
 
-  const { data: categorySummaryData, refetch: refetchCategorySummary } =
-    useGetExpenseCategorySummaryQuery(filter);
+  // Use the enhanced getExpenseCategories query instead of categorySummary
+  const { 
+    data: expenseCategoriesData, 
+    refetch: refetchExpenseCategories 
+  } = useGetExpenseCategoriesQuery(filter);
+
+  // Daily Expenses queries
+  const {
+    data: dailyExpensesData,
+    isLoading: dailyExpensesLoading,
+    refetch: refetchDailyExpenses,
+  } = useGetDailyExpensesQuery(filter);
 
   const [createEarnedIncome] = useCreateEarnedIncomeMutation();
   const [updateEarnedIncome] = useUpdateEarnedIncomeMutation();
@@ -147,33 +182,38 @@ const Dashboard = () => {
   const [updateLiability] = useUpdateLiabilityMutation();
   const [deleteLiability] = useDeleteLiabilityMutation();
 
-const earnedIncomes = financialData?.data?.details?.earnedIncomes.map((income: any) => ({
-  id: income.id,
-  name: income.name,
-  amount: income.amount,
-  date: income.date,
-})) || [];
+  // Daily Expenses mutations
+  const [createDailyExpense] = useCreateDailyExpenseMutation();
+  const [updateDailyExpense] = useUpdateDailyExpenseMutation();
+  const [deleteDailyExpense] = useDeleteDailyExpenseMutation();
 
-const passiveIncomes = financialData?.data?.details?.passiveIncomes.map((income: any) => ({
-  id: income.id,
-  name: income.name,
-  amount: income.amount,
-  date: income.date,
-})) || [];
+  const earnedIncomes = financialData?.data?.details?.earnedIncomes.map((income: any) => ({
+    id: income.id,
+    name: income.name,
+    amount: income.amount,
+    date: income.date,
+  })) || [];
 
-const assets = financialData?.data?.details?.assets.map((asset: any) => ({
-  id: asset.id,
-  name: asset.name,
-  value: asset.value,
-  date: asset.date,
-})) || [];
+  const passiveIncomes = financialData?.data?.details?.passiveIncomes.map((income: any) => ({
+    id: income.id,
+    name: income.name,
+    amount: income.amount,
+    date: income.date,
+  })) || [];
 
-const liabilities = financialData?.data?.details?.liabilities.map((liab: any) => ({
-  id: liab.id,
-  name: liab.name,
-  value: liab.value,
-  date: liab.date,
-})) || [];
+  const assets = financialData?.data?.details?.assets.map((asset: any) => ({
+    id: asset.id,
+    name: asset.name,
+    value: asset.value,
+    date: asset.date,
+  })) || [];
+
+  const liabilities = financialData?.data?.details?.liabilities.map((liab: any) => ({
+    id: liab.id,
+    name: liab.name,
+    value: liab.value,
+    date: liab.date,
+  })) || [];
 
   const allIncomes = [...earnedIncomes, ...passiveIncomes].map((income) => ({
     id: income.id,
@@ -186,10 +226,57 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
   const totalLiabilities = financialData?.data?.summary?.totalLiabilities || 0;
   const totalAssets = financialData?.data?.summary?.totalAssets || 0;
 
+  // Daily Expenses handlers
+  const handleDailyExpenseSubmit = async () => {
+    if (
+      !dailyExpenseForm.description ||
+      !dailyExpenseForm.amount ||
+      !dailyExpenseForm.date ||
+      !dailyExpenseForm.expenseCategoryId
+    )
+      return;
+
+    try {
+      if (editingDailyExpenseId) {
+        await updateDailyExpense({ id: editingDailyExpenseId, ...dailyExpenseForm }).unwrap();
+        setEditingDailyExpenseId(null);
+      } else {
+        await createDailyExpense(dailyExpenseForm).unwrap();
+        setIsAddingDailyExpense(false);
+      }
+      resetDailyExpenseForm();
+      refetchDailyExpenses();
+      refetch();
+      refetchExpenseCategories();
+    } catch (err) {
+      console.error("Failed to save daily expense:", err);
+    }
+  };
+
+  const handleEditDailyExpense = (expense: any) => {
+    setEditingDailyExpenseId(expense.id);
+    setDailyExpenseForm({
+      description: expense.description,
+      amount: expense.amount,
+      date: new Date(expense.date).toISOString().split("T")[0],
+      expenseCategoryId: expense.expenseCategoryId,
+    });
+    setIsAddingDailyExpense(false);
+  };
+
+  const resetDailyExpenseForm = () => {
+    setDailyExpenseForm({
+      description: "",
+      amount: 0,
+      date: new Date().toISOString().split("T")[0],
+      expenseCategoryId: "",
+    });
+  };
+
   const handleDeleteClick = (
     id: string,
     name: string,
-    type: "income" | "expense" | "asset" | "liability",
+    type: "income" | "expense" | "asset" | "liability" | "dailyExpense",
   ) => {
     setItemToDelete({ id, name, type });
     setDeleteDialogOpen(true);
@@ -206,6 +293,7 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
           break;
         case "expense":
           await deleteExpenseCategory(itemToDelete.id).unwrap();
+          refetchExpenseCategories();
           break;
         case "asset":
           await deleteAsset(itemToDelete.id).unwrap();
@@ -213,9 +301,13 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
         case "liability":
           await deleteLiability(itemToDelete.id).unwrap();
           break;
+        case "dailyExpense":
+          await deleteDailyExpense(itemToDelete.id).unwrap();
+          refetchDailyExpenses();
+          refetchExpenseCategories();
+          break;
       }
       refetch();
-      refetchCategorySummary();
       setDeleteDialogOpen(false);
       setItemToDelete(null);
     } catch (err) {
@@ -273,7 +365,7 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
         date: data.date,
       }).unwrap();
       refetch();
-      refetchCategorySummary();
+      refetchExpenseCategories();
     } catch (err) {
       console.error("Failed to add expense category:", err);
     }
@@ -291,9 +383,9 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
         date: data.date,
       }).unwrap();
       refetch();
-      refetchCategorySummary();
+      refetchExpenseCategories();
       setEditingExpenseId(null);
-      setEditExpenseForm({ name: "", amount: 0 });
+      setEditExpenseForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
     } catch (err) {
       console.error("Failed to update expense category:", err);
     }
@@ -369,25 +461,26 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
     }
   };
 
-  const startEditExpense = (category: {
-    id: string;
-    name: string;
-    amount: number;
-  }) => {
+  const handleEditExpense = (category: { id: string; name: string; amount: number }) => {
     setEditingExpenseId(category.id);
-    setEditExpenseForm({ name: category.name, amount: category.amount });
+    setEditExpenseForm({
+      name: category.name,
+      amount: category.amount,
+      date: new Date().toISOString().split("T")[0],
+    });
   };
 
   const cancelEditExpense = () => {
     setEditingExpenseId(null);
-    setEditExpenseForm({ name: "", amount: 0 });
+    setEditExpenseForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
   };
 
-  const saveEditExpense = async (id: string) => {
-    if (!editExpenseForm.name.trim()) return;
-    await handleUpdateExpense(id, {
+  const saveEditExpense = async () => {
+    if (!editExpenseForm.name.trim() || editingExpenseId === null) return;
+    await handleUpdateExpense(editingExpenseId, {
       name: editExpenseForm.name,
       amount: editExpenseForm.amount,
+      date: editExpenseForm.date,
     });
   };
 
@@ -429,6 +522,8 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
         return "Asset";
       case "liability":
         return "Liability";
+      case "dailyExpense":
+        return "Daily Expense";
       default:
         return "Item";
     }
@@ -438,6 +533,11 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
   const filterInfo = financialData?.filter;
   const isFilterApplied = filterInfo?.nepaliYear || filterInfo?.dateRange;
 
+  // Calculate totals from expense categories
+  const expenseCategories = expenseCategoriesData?.data || [];
+  const totalExpenseCategories = expenseCategories.reduce((sum, cat) => sum + cat.budget, 0);
+  const totalSpent = expenseCategories.reduce((sum, cat) => sum + cat.spent, 0);
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="mb-8">
@@ -445,7 +545,7 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
           Financial Dashboard
         </h1>
         <p className="text-gray-600">
-          Track your income, expense categories, assets, and liabilities
+          Track your income, expense categories, assets, liabilities, and daily expenses
         </p>
         {isFilterApplied && (
           <div className="mt-2 rounded-lg bg-blue-50 p-2 text-sm text-blue-800">
@@ -541,7 +641,7 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
           bgColor="bg-white"
         />
 
-        {/* Enhanced Expense Categories with integrated budget details and edit controls */}
+        {/* Enhanced Expense Categories with ExpenseCategoryCard */}
         <div className="overflow-hidden rounded-xl bg-white shadow-lg">
           <div className="border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
@@ -556,201 +656,106 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
                   const name = prompt("Enter category name:");
                   const budget = prompt("Enter budget amount:");
                   if (name && budget) {
-                    handleAddExpense({ name, amount: parseFloat(budget) });
+                    handleAddExpense({ 
+                      name, 
+                      amount: parseFloat(budget),
+                      date: new Date().toISOString().split("T")[0]
+                    });
                   }
                 }}
                 className="flex items-center gap-1 rounded-lg bg-blue-500 px-3 py-1.5 text-sm text-white transition-colors hover:bg-blue-600"
               >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
+                <Plus className="h-4 w-4" />
                 Add Category
               </button>
             </div>
           </div>
 
-          {/* Category List with Integrated Budget Details */}
+          {/* Category List with ExpenseCategoryCard */}
           <div className="max-h-[600px] overflow-y-auto p-6">
-            <div className="space-y-6">
-              {categorySummaryData?.data?.data?.map((category) => (
-                <div key={category.id} className="rounded-lg bg-gray-50 p-6">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div className="flex-1">
-                      {editingExpenseId === category.id ? (
-                        <div className="space-y-2">
-                          <input
-                            type="text"
-                            value={editExpenseForm.name}
-                            onChange={(e) =>
-                              setEditExpenseForm({
-                                ...editExpenseForm,
-                                name: e.target.value,
-                              })
-                            }
-                            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Category name"
-                            autoFocus
-                          />
-                          <input
-                            type="number"
-                            value={editExpenseForm.amount}
-                            onChange={(e) =>
-                              setEditExpenseForm({
-                                ...editExpenseForm,
-                                amount: parseFloat(e.target.value) || 0,
-                              })
-                            }
-                            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Budget amount"
-                          />
-                          <div className="mt-2 flex gap-2">
-                            <button
-                              onClick={() => saveEditExpense(category.id)}
-                              className="rounded-lg bg-green-500 px-3 py-1 text-sm text-white hover:bg-green-600"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={cancelEditExpense}
-                              className="rounded-lg bg-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-400"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-10">
-                          <div className="">
-                            <h3 className="text-lg font-semibold text-gray-800">
-                              {category.name}
-                            </h3>
-                            <p className="text-lg font-bold text-gray-800">
-                              ${category.budget.toLocaleString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="mb-1 text-sm text-gray-500">Spent</p>
-                            <p className="text-lg font-bold text-red-600">
-                              ${category.spent.toLocaleString()}
-                            </p>
-                          </div>
-                          {/* Circular Progress */}
-                          {editingExpenseId !== category.id && (
-                            <>
-                              <div className="mb-6 flex justify-center">
-                                <CircularProgress
-                                  percentage={Math.min(
-                                    parseFloat(category.percentageUsed),
-                                    100,
-                                  )}
-                                  size={50}
-                                  strokeWidth={4}
-                                />
-                              </div>
-
-                              {/* Budget Details Grid */}
-                              <div className="grid grid-cols-2 gap-4 pt-4">
-                                <div className="text-center">
-                                  <p className="mb-1 text-sm text-gray-500">
-                                    Remaining
-                                  </p>
-                                  <p
-                                    className={`text-lg font-bold ${
-                                      category.remaining < 0
-                                        ? "text-red-600"
-                                        : "text-green-600"
-                                    }`}
-                                  >
-                                    $
-                                    {Math.abs(
-                                      category.remaining,
-                                    ).toLocaleString()}
-                                    {category.remaining < 0 && (
-                                      <span className="ml-1 text-sm">over</span>
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {editingExpenseId !== category.id && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() =>
-                            startEditExpense({
-                              id: category.id,
-                              name: category.name,
-                              amount: category.budget,
-                            })
-                          }
-                          className="rounded-lg p-2 transition-colors hover:bg-gray-200"
-                        >
-                          <svg
-                            className="h-4 w-4 text-blue-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDeleteClick(
-                              category.id,
-                              category.name,
-                              "expense",
-                            )
-                          }
-                          className="rounded-lg p-2 transition-colors hover:bg-gray-200"
-                        >
-                          <svg
-                            className="h-4 w-4 text-red-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
+            {/* Edit Form */}
+            {editingExpenseId && (
+              <div className="mb-4 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Category</h3>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={editExpenseForm.name}
+                    onChange={(e) =>
+                      setEditExpenseForm({
+                        ...editExpenseForm,
+                        name: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Category name"
+                    autoFocus
+                  />
+                  <input
+                    type="number"
+                    value={editExpenseForm.amount}
+                    onChange={(e) =>
+                      setEditExpenseForm({
+                        ...editExpenseForm,
+                        amount: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Budget amount"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={saveEditExpense}
+                      className="flex-1 rounded-lg bg-green-500 px-3 py-2 text-sm text-white hover:bg-green-600 transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={cancelEditExpense}
+                      className="flex-1 rounded-lg bg-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-400 transition-colors"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {expenseCategories.map((category) => (
+                <ExpenseCategoryCard
+                  key={category.id}
+                  category={category}
+                  onEdit={handleEditExpense}
+                  onDelete={(id, name) => handleDeleteClick(id, name, "expense")}
+                />
               ))}
 
-              {(!categorySummaryData?.data?.data ||
-                categorySummaryData.data.data.length === 0) && (
+              {expenseCategories.length === 0 && !editingExpenseId && (
                 <div className="py-12 text-center text-gray-500">
-                  No expense categories found. Click "Add Category" to track
-                  spending.
+                  No expense categories found. Click "Add Category" to track spending.
                 </div>
               )}
             </div>
+
+            {expenseCategories.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">Total Budget</p>
+                    <p className="text-xl font-bold text-gray-800">
+                      ${totalExpenseCategories.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">Total Spent</p>
+                    <p className="text-xl font-bold text-red-600">
+                      ${totalSpent.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -789,9 +794,212 @@ const liabilities = financialData?.data?.details?.liabilities.map((liab: any) =>
         />
       </div>
 
+      {/* Daily Expenses Section - At the bottom */}
+      <div className="mt-8">
+        <div className="overflow-hidden rounded-xl bg-white shadow-lg">
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-gray-600" />
+              <h2 className="text-xl font-semibold text-gray-800">
+                Daily Expenses
+              </h2>
+            </div>
+            <button
+              onClick={() => {
+                setIsAddingDailyExpense(true);
+                setEditingDailyExpenseId(null);
+                resetDailyExpenseForm();
+              }}
+              className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+            >
+              <Plus className="h-4 w-4" />
+              Add Expense
+            </button>
+          </div>
+
+          <div className="p-6">
+            {/* Add/Edit Form */}
+            {(isAddingDailyExpense || editingDailyExpenseId) && (
+              <div className="mb-6 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Description
+                    </label>
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Grocery shopping"
+                        value={dailyExpenseForm.description}
+                        onChange={(e) =>
+                          setDailyExpenseForm({
+                            ...dailyExpenseForm,
+                            description: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Amount
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={dailyExpenseForm.amount}
+                        onChange={(e) =>
+                          setDailyExpenseForm({
+                            ...dailyExpenseForm,
+                            amount: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        className="w-full rounded-lg border py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Date
+                    </label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+                      <input
+                        type="date"
+                        value={dailyExpenseForm.date}
+                        onChange={(e) =>
+                          setDailyExpenseForm({ ...dailyExpenseForm, date: e.target.value })
+                        }
+                        className="w-full rounded-lg border py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Category
+                    </label>
+                    <select
+                      value={dailyExpenseForm.expenseCategoryId}
+                      onChange={(e) =>
+                        setDailyExpenseForm({
+                          ...dailyExpenseForm,
+                          expenseCategoryId: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select category</option>
+                      {expenseCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-3">
+                  <button
+                    onClick={handleDailyExpenseSubmit}
+                    className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
+                  >
+                    {editingDailyExpenseId ? "Update" : "Save"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsAddingDailyExpense(false);
+                      setEditingDailyExpenseId(null);
+                      resetDailyExpenseForm();
+                    }}
+                    className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Daily Expenses List */}
+            {dailyExpensesLoading ? (
+              <div className="flex justify-center py-12">
+                <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {dailyExpensesData?.data?.map((expense) => (
+                  <div
+                    key={expense.id}
+                    className="flex items-center justify-between rounded-lg bg-gray-50 p-4 transition-shadow hover:shadow-md"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="rounded-lg bg-red-100 p-2">
+                        <TrendingDown className="h-5 w-5 text-red-500" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {expense.description}
+                        </p>
+                        <div className="mt-1 flex items-center gap-3">
+                          <span className="text-sm text-gray-500">
+                            {expense.expenseCategory?.name}
+                          </span>
+                          <span className="text-sm text-gray-400">•</span>
+                          <span className="text-sm text-gray-500">
+                            {new Date(expense.date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <p className="text-lg font-semibold text-red-600">
+                        ${expense.amount.toLocaleString()}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditDailyExpense(expense)}
+                          className="rounded-lg p-2 hover:bg-gray-200"
+                        >
+                          <Pencil className="h-4 w-4 text-blue-500" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDeleteClick(
+                              expense.id,
+                              expense.description,
+                              "dailyExpense",
+                            )
+                          }
+                          className="rounded-lg p-2 hover:bg-gray-200"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(!dailyExpensesData?.data ||
+                  dailyExpensesData.data.length === 0) && (
+                  <div className="py-12 text-center text-gray-500">
+                    No daily expenses found for this period. Click "Add Expense" to
+                    get started.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="fixed bottom-6 right-6">
         <button
-          onClick={() => refetch()}
+          onClick={() => {
+            refetch();
+            refetchExpenseCategories();
+            refetchDailyExpenses();
+          }}
           className="rounded-full bg-blue-500 p-3 text-white shadow-lg transition-colors hover:bg-blue-600"
         >
           <RefreshCw className="h-5 w-5" />
