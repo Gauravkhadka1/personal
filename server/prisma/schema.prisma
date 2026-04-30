@@ -49,6 +49,7 @@ model EarnedIncome {
   amount    Float
   userId    Int
   user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+    date        DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -60,6 +61,7 @@ model PassiveIncome {
   amount    Float
   userId    Int
   user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+    date        DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -72,6 +74,7 @@ model ExpenseCategory {
   userId        Int
   user          User            @relation(fields: [userId], references: [userId], onDelete: Cascade)
   dailyExpenses DailyExpense[]  // Add this line
+    date        DateTime
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 }
@@ -83,6 +86,7 @@ model Asset {
   value  Float
   userId Int
   user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+    date        DateTime
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -95,6 +99,7 @@ model Liability {
   value  Float
   userId Int
   user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+    date        DateTime
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

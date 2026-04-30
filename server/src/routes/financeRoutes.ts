@@ -1,37 +1,32 @@
 import express from "express";
 import { authenticateToken } from "../middleware/authMiddleware";
+import { parseNepaliDateFilter, getAvailableNepaliFilters } from "../middleware/nepaliDateFilter";
 import {
-  // Earned Income
   createEarnedIncome,
   getEarnedIncomes,
   getEarnedIncomeById,
   updateEarnedIncome,
   deleteEarnedIncome,
-  // Passive Income
   createPassiveIncome,
   getPassiveIncomes,
   getPassiveIncomeById,
   updatePassiveIncome,
   deletePassiveIncome,
-  // Expense
   createExpenseCategory,
   getExpenseCategories,
   getExpenseCategoryById,
   updateExpenseCategory,
   deleteExpenseCategory,
-  // Asset
   createAsset,
   getAssets,
   getAssetById,
   updateAsset,
   deleteAsset,
-  // Liability
   createLiability,
   getLiabilities,
   getLiabilityById,
   updateLiability,
   deleteLiability,
-  // Summary
   getFinancialSummary,
 } from "../controllers/financeController";
 
@@ -49,16 +44,19 @@ const router = express.Router();
 // Apply authentication to all routes
 router.use(authenticateToken);
 
+// ==================== FILTER UTILITIES ====================
+router.get("/available-filters", getAvailableNepaliFilters);
+
 // ==================== EARNED INCOME ROUTES ====================
 router.post("/earned-income", createEarnedIncome);
-router.get("/earned-income", getEarnedIncomes);
+router.get("/earned-income", parseNepaliDateFilter, getEarnedIncomes);
 router.get("/earned-income/:id", getEarnedIncomeById);
 router.put("/earned-income/:id", updateEarnedIncome);
 router.delete("/earned-income/:id", deleteEarnedIncome);
 
 // ==================== PASSIVE INCOME ROUTES ====================
 router.post("/passive-income", createPassiveIncome);
-router.get("/passive-income", getPassiveIncomes);
+router.get("/passive-income", parseNepaliDateFilter, getPassiveIncomes);
 router.get("/passive-income/:id", getPassiveIncomeById);
 router.put("/passive-income/:id", updatePassiveIncome);
 router.delete("/passive-income/:id", deletePassiveIncome);
@@ -86,16 +84,15 @@ router.delete("/liability/:id", deleteLiability);
 
 // ==================== DAILY EXPENSE ROUTES ====================
 router.post("/daily-expense", createDailyExpense);
-router.get("/daily-expense", getDailyExpenses);
+router.get("/daily-expense", parseNepaliDateFilter, getDailyExpenses);
 router.get("/daily-expense/:id", getDailyExpenseById);
 router.put("/daily-expense/:id", updateDailyExpense);
 router.delete("/daily-expense/:id", deleteDailyExpense);
 
 // ==================== EXPENSE CATEGORY SUMMARY ====================
-router.get("/expense-category-summary", getExpenseCategorySummary);
+router.get("/expense-category-summary", parseNepaliDateFilter, getExpenseCategorySummary);
 
 // ==================== SUMMARY ROUTE ====================
-router.get("/summary", getFinancialSummary);
-
+router.get("/summary", parseNepaliDateFilter, getFinancialSummary);
 
 export default router;

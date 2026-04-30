@@ -28,6 +28,7 @@ export interface EarnedIncome {
   name: string;
   amount: number;
   userId: number;
+   date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,6 +38,7 @@ export interface PassiveIncome {
   name: string;
   amount: number;
   userId: number;
+   date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +48,7 @@ export interface ExpenseCategory {
   name: string;
   amount: number;
   userId: number;
+   date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +58,7 @@ export interface Asset {
   name: string;
   value: number;
   userId: number;
+   date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -64,6 +68,7 @@ export interface Liability {
   name: string;
   value: number;
   userId: number;
+   date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -114,6 +119,33 @@ export interface ExpenseCategorySummary {
   status: 'overspent' | 'warning' | 'good';
 }
 
+export interface NepaliFilter {
+  nepaliYear?: number;
+  nepaliMonth?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface AvailableFilters {
+  years: number[];
+  months: { value: number; label: string }[];
+}
+
+export interface FilteredResponse<T> {
+  data: T;
+  filter: {
+    nepaliYear: number | null;
+    nepaliMonth: number | null;
+    nepaliMonthName: string | null;
+    dateRange: {
+      start: string;
+      end: string;
+    } | null;
+  };
+  pagination?: any;
+  categoryTotals?: any;
+  summary?: any;
+}
 
 export const api = createApi({
   baseQuery: fetchBaseQuery({
@@ -136,8 +168,9 @@ export const api = createApi({
     "ExpenseCategory",
     "Asset",
     "Liability",
-     "DailyExpense",           // Add this
-  "ExpenseCategorySummary", 
+    "DailyExpense",
+    "ExpenseCategorySummary",
+    "AvailableFilters",
   ],
   endpoints: (build) => ({
     // User endpoints (existing)
@@ -183,19 +216,38 @@ export const api = createApi({
       invalidatesTags: ["Users"],
     }),
 
-    getFinancialSummary: build.query<FinancialSummary, void>({
-      query: () => "finance/summary",
+    // Available Filters
+    getAvailableFilters: build.query<AvailableFilters, void>({
+      query: () => "finance/available-filters",
+      providesTags: ["AvailableFilters"],
+    }),
+
+    // Financial Summary with Nepali filter
+    getFinancialSummary: build.query<
+      FilteredResponse<FinancialSummary>,
+      NepaliFilter
+    >({
+      query: (params) => ({
+        url: "finance/summary",
+        params: params || {},
+      }),
       providesTags: ["EarnedIncome", "PassiveIncome", "ExpenseCategory", "Liability"],
     }),
 
     // Earned Income
-    getEarnedIncomes: build.query<EarnedIncome[], void>({
-      query: () => "finance/earned-income",
+    getEarnedIncomes: build.query<
+      FilteredResponse<EarnedIncome[]> & { pagination: any },
+      NepaliFilter
+    >({
+      query: (params) => ({
+        url: "finance/earned-income",
+        params: params || {},
+      }),
       providesTags: ["EarnedIncome"],
     }),
     createEarnedIncome: build.mutation<
       EarnedIncome,
-      { name: string; amount: number }
+      { name: string; amount: number; date?: string }
     >({
       query: (body) => ({
         url: "finance/earned-income",
@@ -206,7 +258,7 @@ export const api = createApi({
     }),
     updateEarnedIncome: build.mutation<
       EarnedIncome,
-      { id: string; name: string; amount: number }
+      { id: string; name: string; amount: number; date?: string }
     >({
       query: ({ id, ...body }) => ({
         url: `finance/earned-income/${id}`,
@@ -224,13 +276,19 @@ export const api = createApi({
     }),
 
     // Passive Income
-    getPassiveIncomes: build.query<PassiveIncome[], void>({
-      query: () => "finance/passive-income",
+    getPassiveIncomes: build.query<
+      FilteredResponse<PassiveIncome[]> & { pagination: any },
+      NepaliFilter
+    >({
+      query: (params) => ({
+        url: "finance/passive-income",
+        params: params || {},
+      }),
       providesTags: ["PassiveIncome"],
     }),
     createPassiveIncome: build.mutation<
       PassiveIncome,
-      { name: string; amount: number }
+      { name: string; amount: number; date?: string }
     >({
       query: (body) => ({
         url: "finance/passive-income",
@@ -241,7 +299,7 @@ export const api = createApi({
     }),
     updatePassiveIncome: build.mutation<
       PassiveIncome,
-      { id: string; name: string; amount: number }
+  { id: string; name: string; amount: number; date?: string }
     >({
       query: ({ id, ...body }) => ({
         url: `finance/passive-income/${id}`,
@@ -258,15 +316,15 @@ export const api = createApi({
       invalidatesTags: ["PassiveIncome"],
     }),
 
-    // Expense Category (renamed from Expense)
-getExpenseCategories: build.query<
-  { data: ExpenseCategory[]; pagination: { page: number; limit: number; total: number; totalPages: number } },
-  void
->({
-  query: () => "finance/expense-category",
-  providesTags: ["ExpenseCategory"],
-}),
-    createExpenseCategory: build.mutation<ExpenseCategory, { name: string; amount: number }>({
+    // Expense Category
+    getExpenseCategories: build.query<
+      { data: ExpenseCategory[]; pagination: { page: number; limit: number; total: number; totalPages: number } },
+      void
+    >({
+      query: () => "finance/expense-category",
+      providesTags: ["ExpenseCategory"],
+    }),
+    createExpenseCategory: build.mutation<ExpenseCategory,   { name: string; amount: number; date?: string }>({
       query: (body) => ({
         url: "finance/expense-category",
         method: "POST",
@@ -276,7 +334,7 @@ getExpenseCategories: build.query<
     }),
     updateExpenseCategory: build.mutation<
       ExpenseCategory,
-      { id: string; name: string; amount: number }
+      { id: string; name: string; amount: number; date?: string }
     >({
       query: ({ id, ...body }) => ({
         url: `finance/expense-category/${id}`,
@@ -298,7 +356,7 @@ getExpenseCategories: build.query<
       query: () => "finance/asset",
       providesTags: ["Asset"],
     }),
-    createAsset: build.mutation<Asset, { name: string; value: number }>({
+    createAsset: build.mutation<Asset, { name: string; value: number; date?: string }>({
       query: (body) => ({
         url: "finance/asset",
         method: "POST",
@@ -306,7 +364,7 @@ getExpenseCategories: build.query<
       }),
       invalidatesTags: ["Asset"],
     }),
-    updateAsset: build.mutation<Asset, { id: string; name: string; value: number }>({
+    updateAsset: build.mutation<Asset, { id: string; name: string; value: number; date?: string }>({
       query: ({ id, ...body }) => ({
         url: `finance/asset/${id}`,
         method: "PUT",
@@ -327,7 +385,7 @@ getExpenseCategories: build.query<
       query: () => "finance/liability",
       providesTags: ["Liability"],
     }),
-    createLiability: build.mutation<Liability, { name: string; value: number }>(
+    createLiability: build.mutation<Liability, { name: string; value: number; date?: string }>(
       {
         query: (body) => ({
           url: "finance/liability",
@@ -339,7 +397,7 @@ getExpenseCategories: build.query<
     ),
     updateLiability: build.mutation<
       Liability,
-      { id: string; name: string; value: number }
+      { id: string; name: string; value: number; date?: string  }
     >({
       query: ({ id, ...body }) => ({
         url: `finance/liability/${id}`,
@@ -356,80 +414,72 @@ getExpenseCategories: build.query<
       invalidatesTags: ["Liability"],
     }),
 
-    
-     // Daily Expense endpoints
-  getDailyExpenses: build.query<{
-    data: DailyExpense[];
-    pagination: any;
-    categoryTotals: any[];
-  }, { startDate?: string; endDate?: string; expenseCategoryId?: string } | void>({
-    query: (params) => ({
-      url: "finance/daily-expense",
-      params: params || {},
+    // Daily Expense endpoints
+    getDailyExpenses: build.query<
+      FilteredResponse<DailyExpense[]> & { pagination: any; categoryTotals: any[] },
+      NepaliFilter
+    >({
+      query: (params) => ({
+        url: "finance/daily-expense",
+        params: params || {},
+      }),
+      providesTags: ["DailyExpense"],
     }),
-    providesTags: ["DailyExpense"],
-  }),
 
-  createDailyExpense: build.mutation<DailyExpense, {
-    description: string;
-    amount: number;
-    date: string;
-    expenseCategoryId: string;
-  }>({
-    query: (body) => ({
-      url: "finance/daily-expense",
-      method: "POST",
-      body,
+    createDailyExpense: build.mutation<DailyExpense, {
+      description: string;
+      amount: number;
+      date: string;
+      expenseCategoryId: string;
+    }>({
+      query: (body) => ({
+        url: "finance/daily-expense",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["DailyExpense", "ExpenseCategorySummary"],
     }),
-    invalidatesTags: ["DailyExpense", "ExpenseCategorySummary"],
-  }),
 
-  updateDailyExpense: build.mutation<DailyExpense, {
-    id: string;
-    description: string;
-    amount: number;
-    date: string;
-    expenseCategoryId: string;
-  }>({
-    query: ({ id, ...body }) => ({
-      url: `finance/daily-expense/${id}`,
-      method: "PUT",
-      body,
+    updateDailyExpense: build.mutation<DailyExpense, {
+      id: string;
+      description: string;
+      amount: number;
+      date: string;
+      expenseCategoryId: string;
+    }>({
+      query: ({ id, ...body }) => ({
+        url: `finance/daily-expense/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["DailyExpense", "ExpenseCategorySummary"],
     }),
-    invalidatesTags: ["DailyExpense", "ExpenseCategorySummary"],
-  }),
 
-  deleteDailyExpense: build.mutation<void, string>({
-    query: (id) => ({
-      url: `finance/daily-expense/${id}`,
-      method: "DELETE",
+    deleteDailyExpense: build.mutation<void, string>({
+      query: (id) => ({
+        url: `finance/daily-expense/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["DailyExpense", "ExpenseCategorySummary"],
     }),
-    invalidatesTags: ["DailyExpense", "ExpenseCategorySummary"],
-  }),
 
-  getExpenseCategorySummary: build.query<{
-    data: ExpenseCategorySummary[];
-    summary: {
-      totalBudget: number;
-      totalSpent: number;
-    };
-  }, { startDate?: string; endDate?: string } | void>({
-    query: (params) => ({
-      url: "finance/expense-category-summary",
-      params: params || {},
+    getExpenseCategorySummary: build.query<
+      FilteredResponse<{ data: ExpenseCategorySummary[]; summary: { totalBudget: number; totalSpent: number } }>,
+      NepaliFilter
+    >({
+      query: (params) => ({
+        url: "finance/expense-category-summary",
+        params: params || {},
+      }),
+      providesTags: ["ExpenseCategorySummary"],
     }),
-    providesTags: ["ExpenseCategorySummary"],
+
+    getExpenseCategoriesList: build.query<{ id: string; name: string; amount: number }[], void>({
+      query: () => "daily-expenses/categories",
+      providesTags: ["ExpenseCategory"],
+    }),
   }),
-
-  getExpenseCategoriesList: build.query<{ id: string; name: string; amount: number }[], void>({
-    query: () => "daily-expenses/categories",
-    providesTags: ["ExpenseCategory"],
-  }),
-}),
-
-   
-  });
-
+});
 
 export const {
   // User hooks
@@ -439,6 +489,10 @@ export const {
   useRegisterUserMutation,
   useChangePasswordMutation,
 
+  // Filter hooks
+  useGetAvailableFiltersQuery,
+
+  // Financial hooks
   useGetFinancialSummaryQuery,
   useGetEarnedIncomesQuery,
   useCreateEarnedIncomeMutation,
@@ -448,20 +502,27 @@ export const {
   useCreatePassiveIncomeMutation,
   useUpdatePassiveIncomeMutation,
   useDeletePassiveIncomeMutation,
-  // Expense Category hooks (renamed)
+  
+  // Expense Category hooks
   useGetExpenseCategoriesQuery,
   useCreateExpenseCategoryMutation,
   useUpdateExpenseCategoryMutation,
   useDeleteExpenseCategoryMutation,
+  
+  // Asset hooks
   useGetAssetsQuery,
   useCreateAssetMutation,
   useUpdateAssetMutation,
   useDeleteAssetMutation,
+  
+  // Liability hooks
   useGetLiabilitiesQuery,
   useCreateLiabilityMutation,
   useUpdateLiabilityMutation,
   useDeleteLiabilityMutation,
-   useGetDailyExpensesQuery,
+  
+  // Daily Expense hooks
+  useGetDailyExpensesQuery,
   useCreateDailyExpenseMutation,
   useUpdateDailyExpenseMutation,
   useDeleteDailyExpenseMutation,

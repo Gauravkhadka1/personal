@@ -1,3 +1,5 @@
+// client/src/components/FinanceCard.tsx
+
 'use client';
 
 import React, { useState } from 'react';
@@ -15,7 +17,8 @@ import {
   Car,
   CreditCard,
   Smartphone,
-  LucideIcon
+  LucideIcon,
+  Calendar
 } from 'lucide-react';
 
 export interface FinanceItem {
@@ -23,6 +26,7 @@ export interface FinanceItem {
   name: string;
   amount?: number;
   value?: number;
+  date?: string;
 }
 
 interface FinanceCardProps {
@@ -30,8 +34,8 @@ interface FinanceCardProps {
   type: 'income' | 'expense' | 'asset' | 'liability';
   items: FinanceItem[];
   total: number;
-  onAdd: (data: { name: string; amount?: number; value?: number }) => void;
-  onUpdate: (id: string, data: { name: string; amount?: number; value?: number }) => void;
+  onAdd: (data: { name: string; amount?: number; value?: number; date?: string }) => void;
+  onUpdate: (id: string, data: { name: string; amount?: number; value?: number; date?: string }) => void;
   onDelete: (id: string, name: string) => void;
   icon?: LucideIcon;
   color?: string;
@@ -52,7 +56,7 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', amount: 0, value: 0 });
+  const [formData, setFormData] = useState({ name: '', amount: 0, value: 0, date: '' });
 
   const isAmountType = type === 'income' || type === 'expense';
   const isValueType = type === 'asset' || type === 'liability';
@@ -64,6 +68,7 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
       name: formData.name,
       ...(isAmountType && { amount: formData.amount }),
       ...(isValueType && { value: formData.value }),
+      ...(formData.date && { date: formData.date }),
     };
     
     if (editingId) {
@@ -74,7 +79,7 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
       setIsAdding(false);
     }
     
-    setFormData({ name: '', amount: 0, value: 0 });
+    setFormData({ name: '', amount: 0, value: 0, date: '' });
   };
 
   const handleEdit = (item: FinanceItem) => {
@@ -83,6 +88,7 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
       name: item.name,
       amount: item.amount || 0,
       value: item.value || 0,
+      date: item.date ? item.date.split('T')[0] : '',
     });
     setIsAdding(false);
   };
@@ -90,7 +96,7 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ name: '', amount: 0, value: 0 });
+    setFormData({ name: '', amount: 0, value: 0, date: '' });
   };
 
   const getItemIcon = (itemName: string): LucideIcon => {
@@ -121,6 +127,11 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
       case 'liability': return 'text-orange-600';
       default: return 'text-gray-600';
     }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString();
   };
 
   return (
@@ -168,6 +179,12 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
               <div className="flex gap-2">
                 <button
                   onClick={handleSubmit}
@@ -211,6 +228,12 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
                   />
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
+                  />
                   <div className="flex gap-2">
                     <button
                       onClick={handleSubmit}
@@ -240,6 +263,12 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
                           : `$${item.value?.toLocaleString()}`
                         }
                       </p>
+                      {item.date && (
+                        <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                          <Calendar className="w-3 h-3" />
+                          <span>{formatDate(item.date)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">

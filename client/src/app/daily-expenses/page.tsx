@@ -14,6 +14,7 @@ import {
   TrendingDown,
   RefreshCw,
 } from "lucide-react";
+import NepaliDateFilter from "@/components/NepaliDateFilter";
 import {
   useGetDailyExpensesQuery,
   useCreateDailyExpenseMutation,
@@ -36,17 +37,12 @@ import {
 const DailyExpenses = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<{ nepaliYear?: number; nepaliMonth?: number; startDate?: string; endDate?: string }>({});
   const [formData, setFormData] = useState({
     description: "",
     amount: 0,
     date: new Date().toISOString().split("T")[0],
     expenseCategoryId: "",
-  });
-  const [dateFilter, setDateFilter] = useState({
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-      .toISOString()
-      .split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
@@ -56,10 +52,7 @@ const DailyExpenses = () => {
     data: dailyExpensesData,
     isLoading,
     refetch,
-  } = useGetDailyExpensesQuery({
-    startDate: dateFilter.startDate,
-    endDate: dateFilter.endDate,
-  });
+  } = useGetDailyExpensesQuery(filter);
 
   const { data: categoriesResponse } = useGetExpenseCategoriesQuery();
   const categoriesData = categoriesResponse?.data || [];
@@ -127,6 +120,10 @@ const DailyExpenses = () => {
     });
   };
 
+  // Get filter display info
+  const filterInfo = dailyExpensesData?.filter;
+  const isFilterApplied = filterInfo?.nepaliYear || filterInfo?.dateRange;
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="mb-8">
@@ -134,39 +131,21 @@ const DailyExpenses = () => {
           Daily Expenses
         </h1>
         <p className="text-gray-600">Track your daily spending by category</p>
+        {isFilterApplied && (
+          <div className="mt-2 rounded-lg bg-blue-50 p-2 text-sm text-blue-800">
+            📊 Showing expenses for:{" "}
+            {filterInfo?.nepaliYear && filterInfo?.nepaliMonth
+              ? `${filterInfo.nepaliMonthName} ${filterInfo.nepaliYear} BS`
+              : filterInfo?.dateRange
+              ? `${new Date(filterInfo.dateRange.start).toLocaleDateString()} - ${new Date(filterInfo.dateRange.end).toLocaleDateString()}`
+              : "All time"}
+          </div>
+        )}
       </div>
 
-      {/* Date Filter */}
-      <div className="mb-6 rounded-lg bg-white p-4 shadow">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-gray-500" />
-            <input
-              type="date"
-              value={dateFilter.startDate}
-              onChange={(e) =>
-                setDateFilter({ ...dateFilter, startDate: e.target.value })
-              }
-              className="rounded border px-3 py-2"
-            />
-            <span className="text-gray-500">to</span>
-            <input
-              type="date"
-              value={dateFilter.endDate}
-              onChange={(e) =>
-                setDateFilter({ ...dateFilter, endDate: e.target.value })
-              }
-              className="rounded border px-3 py-2"
-            />
-          </div>
-          <button
-            onClick={() => refetch()}
-            className="flex items-center gap-2 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </button>
-        </div>
+      {/* Nepali Date Filter */}
+      <div className="mb-6">
+        <NepaliDateFilter onFilterChange={setFilter} initialFilter={filter} />
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -295,63 +274,69 @@ const DailyExpenses = () => {
             )}
 
             {/* Expenses List */}
-            <div className="space-y-3">
-              {dailyExpensesData?.data?.map((expense) => (
-                <div
-                  key={expense.id}
-                  className="flex items-center justify-between rounded-lg bg-gray-50 p-4 transition-shadow hover:shadow-md"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="rounded-lg bg-red-100 p-2">
-                      <TrendingDown className="h-5 w-5 text-red-500" />
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {dailyExpensesData?.data?.map((expense) => (
+                  <div
+                    key={expense.id}
+                    className="flex items-center justify-between rounded-lg bg-gray-50 p-4 transition-shadow hover:shadow-md"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="rounded-lg bg-red-100 p-2">
+                        <TrendingDown className="h-5 w-5 text-red-500" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {expense.description}
+                        </p>
+                        <div className="mt-1 flex items-center gap-3">
+                          <span className="text-sm text-gray-500">
+                            {expense.expenseCategory?.name}
+                          </span>
+                          <span className="text-sm text-gray-400">•</span>
+                          <span className="text-sm text-gray-500">
+                            {new Date(expense.date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-800">
-                        {expense.description}
+                    <div className="flex items-center gap-4">
+                      <p className="text-lg font-semibold text-red-600">
+                        ${expense.amount.toLocaleString()}
                       </p>
-                      <div className="mt-1 flex items-center gap-3">
-                        <span className="text-sm text-gray-500">
-                          {expense.expenseCategory?.name}
-                        </span>
-                        <span className="text-sm text-gray-400">•</span>
-                        <span className="text-sm text-gray-500">
-                          {new Date(expense.date).toLocaleDateString()}
-                        </span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(expense)}
+                          className="rounded-lg p-2 hover:bg-gray-200"
+                        >
+                          <Pencil className="h-4 w-4 text-blue-500" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setItemToDelete(expense.id);
+                            setDeleteDialogOpen(true);
+                          }}
+                          className="rounded-lg p-2 hover:bg-gray-200"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </button>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <p className="text-lg font-semibold text-red-600">
-                      ${expense.amount.toLocaleString()}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(expense)}
-                        className="rounded-lg p-2 hover:bg-gray-200"
-                      >
-                        <Pencil className="h-4 w-4 text-blue-500" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setItemToDelete(expense.id);
-                          setDeleteDialogOpen(true);
-                        }}
-                        className="rounded-lg p-2 hover:bg-gray-200"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </button>
-                    </div>
+                ))}
+                {(!dailyExpensesData?.data ||
+                  dailyExpensesData.data.length === 0) && (
+                  <div className="py-12 text-center text-gray-500">
+                    No expenses found for this period. Click "Add Expense" to
+                    get started.
                   </div>
-                </div>
-              ))}
-              {(!dailyExpensesData?.data ||
-                dailyExpensesData.data.length === 0) && (
-                <div className="py-12 text-center text-gray-500">
-                  No expenses found for this period. Click "Add Expense" to
-                  get started.
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

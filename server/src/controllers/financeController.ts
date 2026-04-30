@@ -1,3 +1,5 @@
+// server/src/controllers/financeController.ts
+
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 
@@ -8,7 +10,7 @@ const prisma = new PrismaClient();
 export const createEarnedIncome = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { name, amount } = req.body;
+    const { name, amount, date } = req.body;
 
     if (!name || amount === undefined) {
       res.status(400).json({ message: "Name and amount are required" });
@@ -25,6 +27,7 @@ export const createEarnedIncome = async (req: Request, res: Response): Promise<v
         name,
         amount,
         userId: Number(userId),
+        date: date ? new Date(date) : new Date(),
       },
     });
 
@@ -52,7 +55,7 @@ export const getEarnedIncomes = async (req: Request, res: Response): Promise<voi
         where: { userId: Number(userId) },
         skip,
         take: limitNum,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { date: 'desc' },
       }),
       prisma.earnedIncome.count({
         where: { userId: Number(userId) },
@@ -102,7 +105,7 @@ export const updateEarnedIncome = async (req: Request, res: Response): Promise<v
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
-    const { name, amount } = req.body;
+    const { name, amount, date } = req.body;
 
     const existingIncome = await prisma.earnedIncome.findFirst({
       where: {
@@ -126,6 +129,7 @@ export const updateEarnedIncome = async (req: Request, res: Response): Promise<v
       data: {
         name: name || existingIncome.name,
         amount: amount !== undefined ? amount : existingIncome.amount,
+        date: date ? new Date(date) : existingIncome.date,
       },
     });
 
@@ -172,7 +176,7 @@ export const deleteEarnedIncome = async (req: Request, res: Response): Promise<v
 export const createPassiveIncome = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { name, amount } = req.body;
+    const { name, amount, date } = req.body;
 
     if (!name || amount === undefined) {
       res.status(400).json({ message: "Name and amount are required" });
@@ -189,6 +193,7 @@ export const createPassiveIncome = async (req: Request, res: Response): Promise<
         name,
         amount,
         userId: Number(userId),
+        date: date ? new Date(date) : new Date(),
       },
     });
 
@@ -216,7 +221,7 @@ export const getPassiveIncomes = async (req: Request, res: Response): Promise<vo
         where: { userId: Number(userId) },
         skip,
         take: limitNum,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { date: 'desc' },
       }),
       prisma.passiveIncome.count({
         where: { userId: Number(userId) },
@@ -266,7 +271,7 @@ export const updatePassiveIncome = async (req: Request, res: Response): Promise<
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
-    const { name, amount } = req.body;
+    const { name, amount, date } = req.body;
 
     const existingIncome = await prisma.passiveIncome.findFirst({
       where: {
@@ -290,6 +295,7 @@ export const updatePassiveIncome = async (req: Request, res: Response): Promise<
       data: {
         name: name || existingIncome.name,
         amount: amount !== undefined ? amount : existingIncome.amount,
+        date: date ? new Date(date) : existingIncome.date,
       },
     });
 
@@ -331,12 +337,12 @@ export const deletePassiveIncome = async (req: Request, res: Response): Promise<
   }
 };
 
-// ==================== EXPENSE CATEGORY CONTROLLERS (formerly Expense) ====================
+// ==================== EXPENSE CATEGORY CONTROLLERS ====================
 
 export const createExpenseCategory = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { name, amount } = req.body;
+    const { name, amount, date } = req.body;
 
     if (!name || amount === undefined) {
       res.status(400).json({ message: "Name and amount are required" });
@@ -353,6 +359,7 @@ export const createExpenseCategory = async (req: Request, res: Response): Promis
         name,
         amount,
         userId: Number(userId),
+        date: date ? new Date(date) : new Date(),
       },
     });
 
@@ -380,7 +387,7 @@ export const getExpenseCategories = async (req: Request, res: Response): Promise
         where: { userId: Number(userId) },
         skip,
         take: limitNum,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { date: 'desc' },
       }),
       prisma.expenseCategory.count({
         where: { userId: Number(userId) },
@@ -430,7 +437,7 @@ export const updateExpenseCategory = async (req: Request, res: Response): Promis
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
-    const { name, amount } = req.body;
+    const { name, amount, date } = req.body;
 
     const existingExpenseCategory = await prisma.expenseCategory.findFirst({
       where: {
@@ -454,6 +461,7 @@ export const updateExpenseCategory = async (req: Request, res: Response): Promis
       data: {
         name: name || existingExpenseCategory.name,
         amount: amount !== undefined ? amount : existingExpenseCategory.amount,
+        date: date ? new Date(date) : existingExpenseCategory.date,
       },
     });
 
@@ -500,7 +508,7 @@ export const deleteExpenseCategory = async (req: Request, res: Response): Promis
 export const createAsset = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { name, value } = req.body;
+    const { name, value, date } = req.body;
 
     if (!name || value === undefined) {
       res.status(400).json({ message: "Name and value are required" });
@@ -517,6 +525,7 @@ export const createAsset = async (req: Request, res: Response): Promise<void> =>
         name,
         value,
         userId: Number(userId),
+        date: date ? new Date(date) : new Date(),
       },
     });
 
@@ -544,7 +553,7 @@ export const getAssets = async (req: Request, res: Response): Promise<void> => {
         where: { userId: Number(userId) },
         skip,
         take: limitNum,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { date: 'desc' },
       }),
       prisma.asset.count({
         where: { userId: Number(userId) },
@@ -594,7 +603,7 @@ export const updateAsset = async (req: Request, res: Response): Promise<void> =>
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
-    const { name, value } = req.body;
+    const { name, value, date } = req.body;
 
     const existingAsset = await prisma.asset.findFirst({
       where: {
@@ -618,6 +627,7 @@ export const updateAsset = async (req: Request, res: Response): Promise<void> =>
       data: {
         name: name || existingAsset.name,
         value: value !== undefined ? value : existingAsset.value,
+        date: date ? new Date(date) : existingAsset.date,
       },
     });
 
@@ -664,7 +674,7 @@ export const deleteAsset = async (req: Request, res: Response): Promise<void> =>
 export const createLiability = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { name, value } = req.body;
+    const { name, value, date } = req.body;
 
     if (!name || value === undefined) {
       res.status(400).json({ message: "Name and value are required" });
@@ -681,6 +691,7 @@ export const createLiability = async (req: Request, res: Response): Promise<void
         name,
         value,
         userId: Number(userId),
+        date: date ? new Date(date) : new Date(),
       },
     });
 
@@ -708,7 +719,7 @@ export const getLiabilities = async (req: Request, res: Response): Promise<void>
         where: { userId: Number(userId) },
         skip,
         take: limitNum,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { date: 'desc' },
       }),
       prisma.liability.count({
         where: { userId: Number(userId) },
@@ -758,7 +769,7 @@ export const updateLiability = async (req: Request, res: Response): Promise<void
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
-    const { name, value } = req.body;
+    const { name, value, date } = req.body;
 
     const existingLiability = await prisma.liability.findFirst({
       where: {
@@ -782,6 +793,7 @@ export const updateLiability = async (req: Request, res: Response): Promise<void
       data: {
         name: name || existingLiability.name,
         value: value !== undefined ? value : existingLiability.value,
+        date: date ? new Date(date) : existingLiability.date,
       },
     });
 
@@ -828,13 +840,52 @@ export const deleteLiability = async (req: Request, res: Response): Promise<void
 export const getFinancialSummary = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
+    const nepaliFilter = (req as any).nepaliFilter;
+    
+    // Build date filter using the 'date' field instead of 'createdAt'
+    const dateWhereClause: any = {};
+    if (nepaliFilter?.startDate && nepaliFilter?.endDate) {
+      dateWhereClause.date = {
+        gte: nepaliFilter.startDate,
+        lte: nepaliFilter.endDate,
+      };
+    } else if (nepaliFilter?.startDate) {
+      dateWhereClause.date = { gte: nepaliFilter.startDate };
+    } else if (nepaliFilter?.endDate) {
+      dateWhereClause.date = { lte: nepaliFilter.endDate };
+    }
 
     const [earnedIncomes, passiveIncomes, expenseCategories, assets, liabilities] = await Promise.all([
-      prisma.earnedIncome.findMany({ where: { userId: Number(userId) } }),
-      prisma.passiveIncome.findMany({ where: { userId: Number(userId) } }),
-      prisma.expenseCategory.findMany({ where: { userId: Number(userId) } }),
-      prisma.asset.findMany({ where: { userId: Number(userId) } }),
-      prisma.liability.findMany({ where: { userId: Number(userId) } }),
+      prisma.earnedIncome.findMany({ 
+        where: { 
+          userId: Number(userId),
+          ...dateWhereClause,
+        } 
+      }),
+      prisma.passiveIncome.findMany({ 
+        where: { 
+          userId: Number(userId),
+          ...dateWhereClause,
+        } 
+      }),
+      prisma.expenseCategory.findMany({ 
+        where: { 
+          userId: Number(userId),
+          ...dateWhereClause,
+        } 
+      }),
+      prisma.asset.findMany({ 
+        where: { 
+          userId: Number(userId),
+          ...dateWhereClause,
+        } 
+      }),
+      prisma.liability.findMany({ 
+        where: { 
+          userId: Number(userId),
+          ...dateWhereClause,
+        } 
+      }),
     ]);
 
     const totalEarnedIncome = earnedIncomes.reduce((sum, item) => sum + item.amount, 0);
@@ -847,24 +898,36 @@ export const getFinancialSummary = async (req: Request, res: Response): Promise<
     const netCashFlow = totalIncome - totalExpenses;
     const netWorth = totalAssets - totalLiabilities;
 
+    // FIX: Wrap the entire response in a 'data' property
     res.json({
-      summary: {
-        totalEarnedIncome,
-        totalPassiveIncome,
-        totalIncome,
-        totalExpenses,
-        totalAssets,
-        totalLiabilities,
-        netCashFlow,
-        netWorth,
-      },
-      details: {
-        earnedIncomes,
-        passiveIncomes,
-        expenseCategories,
-        assets,
-        liabilities,
-      },
+      data: {
+        filter: {
+          nepaliYear: nepaliFilter?.nepaliYear,
+          nepaliMonth: nepaliFilter?.nepaliMonth,
+          nepaliMonthName: nepaliFilter?.nepaliMonthName,
+          dateRange: nepaliFilter?.startDate && nepaliFilter?.endDate ? {
+            start: nepaliFilter.startDate,
+            end: nepaliFilter.endDate,
+          } : null,
+        },
+        summary: {
+          totalEarnedIncome,
+          totalPassiveIncome,
+          totalIncome,
+          totalExpenses,
+          totalAssets,
+          totalLiabilities,
+          netCashFlow,
+          netWorth,
+        },
+        details: {
+          earnedIncomes,
+          passiveIncomes,
+          expenseCategories,
+          assets,
+          liabilities,
+        },
+      }
     });
   } catch (error: any) {
     console.error("Error fetching financial summary:", error);

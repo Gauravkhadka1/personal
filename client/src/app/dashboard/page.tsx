@@ -11,6 +11,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import FinanceCard from "@/components/FinanceCard";
+import NepaliDateFilter from "@/components/NepaliDateFilter";
 import {
   useGetUsersQuery,
   useGetFinancialSummaryQuery,
@@ -43,19 +44,19 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Circular Progress Component
-const CircularProgress = ({ 
-  percentage, 
-  size = 120, 
-  strokeWidth = 8 
-}: { 
-  percentage: number; 
-  size?: number; 
+const CircularProgress = ({
+  percentage,
+  size = 120,
+  strokeWidth = 8,
+}: {
+  percentage: number;
+  size?: number;
   strokeWidth?: number;
 }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (percentage / 100) * circumference;
-  
+
   const getColor = () => {
     if (percentage >= 100) return "#ef4444";
     if (percentage >= 80) return "#eab308";
@@ -63,9 +64,11 @@ const CircularProgress = ({
   };
 
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg className="transform -rotate-90" width={size} height={size}>
-        {/* Background circle */}
+    <div
+      className="relative inline-flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      <svg className="-rotate-90 transform" width={size} height={size}>
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -74,7 +77,6 @@ const CircularProgress = ({
           stroke="#e5e7eb"
           strokeWidth={strokeWidth}
         />
-        {/* Progress circle */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -99,37 +101,35 @@ const CircularProgress = ({
 
 const Dashboard = () => {
   const { user } = useAuth();
-  
+  const [filter, setFilter] = useState<{
+    nepaliYear?: number;
+    nepaliMonth?: number;
+    startDate?: string;
+    endDate?: string;
+  }>({});
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{
     id: string;
     name: string;
-    type: 'income' | 'expense' | 'asset' | 'liability';
+    type: "income" | "expense" | "asset" | "liability";
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
-  const [editExpenseForm, setEditExpenseForm] = useState({ name: '', amount: 0 });
-
-  // Get current month date range for category summary
-  const currentDate = new Date();
-  const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
-  const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
-    .toISOString()
-    .split("T")[0];
+  const [editExpenseForm, setEditExpenseForm] = useState({
+    name: "",
+    amount: 0,
+  });
 
   const {
     data: financialData,
     isLoading,
     error,
     refetch,
-  } = useGetFinancialSummaryQuery();
+  } = useGetFinancialSummaryQuery(filter);
 
-  const { data: categorySummaryData, refetch: refetchCategorySummary } = useGetExpenseCategorySummaryQuery({
-    startDate,
-    endDate,
-  });
+  const { data: categorySummaryData, refetch: refetchCategorySummary } =
+    useGetExpenseCategorySummaryQuery(filter);
 
   const [createEarnedIncome] = useCreateEarnedIncomeMutation();
   const [updateEarnedIncome] = useUpdateEarnedIncomeMutation();
@@ -147,11 +147,33 @@ const Dashboard = () => {
   const [updateLiability] = useUpdateLiabilityMutation();
   const [deleteLiability] = useDeleteLiabilityMutation();
 
-  const earnedIncomes = financialData?.details?.earnedIncomes || [];
-  const passiveIncomes = financialData?.details?.passiveIncomes || [];
-  const expenseCategories = financialData?.details?.expenseCategories || [];
-  const assets = financialData?.details?.assets || [];
-  const liabilities = financialData?.details?.liabilities || [];
+const earnedIncomes = financialData?.data?.details?.earnedIncomes.map((income: any) => ({
+  id: income.id,
+  name: income.name,
+  amount: income.amount,
+  date: income.date,
+})) || [];
+
+const passiveIncomes = financialData?.data?.details?.passiveIncomes.map((income: any) => ({
+  id: income.id,
+  name: income.name,
+  amount: income.amount,
+  date: income.date,
+})) || [];
+
+const assets = financialData?.data?.details?.assets.map((asset: any) => ({
+  id: asset.id,
+  name: asset.name,
+  value: asset.value,
+  date: asset.date,
+})) || [];
+
+const liabilities = financialData?.data?.details?.liabilities.map((liab: any) => ({
+  id: liab.id,
+  name: liab.name,
+  value: liab.value,
+  date: liab.date,
+})) || [];
 
   const allIncomes = [...earnedIncomes, ...passiveIncomes].map((income) => ({
     id: income.id,
@@ -159,32 +181,36 @@ const Dashboard = () => {
     amount: income.amount,
   }));
 
-  const totalIncome = financialData?.summary?.totalIncome || 0;
-  const totalExpenses = financialData?.summary?.totalExpenses || 0;
-  const totalLiabilities = financialData?.summary?.totalLiabilities || 0;
-  const totalAssets = financialData?.summary?.totalAssets || 0;
+  const totalIncome = financialData?.data?.summary?.totalIncome || 0;
+  const totalExpenses = financialData?.data?.summary?.totalExpenses || 0;
+  const totalLiabilities = financialData?.data?.summary?.totalLiabilities || 0;
+  const totalAssets = financialData?.data?.summary?.totalAssets || 0;
 
-  const handleDeleteClick = (id: string, name: string, type: 'income' | 'expense' | 'asset' | 'liability') => {
+  const handleDeleteClick = (
+    id: string,
+    name: string,
+    type: "income" | "expense" | "asset" | "liability",
+  ) => {
     setItemToDelete({ id, name, type });
     setDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
-    
+
     setIsDeleting(true);
     try {
       switch (itemToDelete.type) {
-        case 'income':
+        case "income":
           await deleteEarnedIncome(itemToDelete.id).unwrap();
           break;
-        case 'expense':
+        case "expense":
           await deleteExpenseCategory(itemToDelete.id).unwrap();
           break;
-        case 'asset':
+        case "asset":
           await deleteAsset(itemToDelete.id).unwrap();
           break;
-        case 'liability':
+        case "liability":
           await deleteLiability(itemToDelete.id).unwrap();
           break;
       }
@@ -199,9 +225,18 @@ const Dashboard = () => {
     }
   };
 
-  const handleAddIncome = async (data: { name: string; amount?: number; value?: number }) => {
+  const handleAddIncome = async (data: {
+    name: string;
+    amount?: number;
+    value?: number;
+    date?: string;
+  }) => {
     try {
-      await createEarnedIncome({ name: data.name, amount: data.amount || 0 }).unwrap();
+      await createEarnedIncome({
+        name: data.name,
+        amount: data.amount || 0,
+        date: data.date,
+      }).unwrap();
       refetch();
     } catch (err) {
       console.error("Failed to add income:", err);
@@ -210,19 +245,33 @@ const Dashboard = () => {
 
   const handleUpdateIncome = async (
     id: string,
-    data: { name: string; amount?: number; value?: number }
+    data: { name: string; amount?: number; value?: number; date?: string },
   ) => {
     try {
-      await updateEarnedIncome({ id, name: data.name, amount: data.amount || 0 }).unwrap();
+      await updateEarnedIncome({
+        id,
+        name: data.name,
+        amount: data.amount || 0,
+        date: data.date,
+      }).unwrap();
       refetch();
     } catch (err) {
       console.error("Failed to update income:", err);
     }
   };
 
-  const handleAddExpense = async (data: { name: string; amount?: number; value?: number }) => {
+  const handleAddExpense = async (data: {
+    name: string;
+    amount?: number;
+    value?: number;
+    date?: string;
+  }) => {
     try {
-      await createExpenseCategory({ name: data.name, amount: data.amount || 0 }).unwrap();
+      await createExpenseCategory({
+        name: data.name,
+        amount: data.amount || 0,
+        date: data.date,
+      }).unwrap();
       refetch();
       refetchCategorySummary();
     } catch (err) {
@@ -232,22 +281,36 @@ const Dashboard = () => {
 
   const handleUpdateExpense = async (
     id: string,
-    data: { name: string; amount?: number; value?: number }
+    data: { name: string; amount?: number; value?: number; date?: string },
   ) => {
     try {
-      await updateExpenseCategory({ id, name: data.name, amount: data.amount || 0 }).unwrap();
+      await updateExpenseCategory({
+        id,
+        name: data.name,
+        amount: data.amount || 0,
+        date: data.date,
+      }).unwrap();
       refetch();
       refetchCategorySummary();
       setEditingExpenseId(null);
-      setEditExpenseForm({ name: '', amount: 0 });
+      setEditExpenseForm({ name: "", amount: 0 });
     } catch (err) {
       console.error("Failed to update expense category:", err);
     }
   };
 
-  const handleAddAsset = async (data: { name: string; amount?: number; value?: number }) => {
+  const handleAddAsset = async (data: {
+    name: string;
+    amount?: number;
+    value?: number;
+    date?: string;
+  }) => {
     try {
-      await createAsset({ name: data.name, value: data.value || 0 }).unwrap();
+      await createAsset({
+        name: data.name,
+        value: data.value || 0,
+        date: data.date,
+      }).unwrap();
       refetch();
     } catch (err) {
       console.error("Failed to add asset:", err);
@@ -256,19 +319,33 @@ const Dashboard = () => {
 
   const handleUpdateAsset = async (
     id: string,
-    data: { name: string; amount?: number; value?: number }
+    data: { name: string; amount?: number; value?: number; date?: string },
   ) => {
     try {
-      await updateAsset({ id, name: data.name, value: data.value || 0 }).unwrap();
+      await updateAsset({
+        id,
+        name: data.name,
+        value: data.value || 0,
+        date: data.date,
+      }).unwrap();
       refetch();
     } catch (err) {
       console.error("Failed to update asset:", err);
     }
   };
 
-  const handleAddLiability = async (data: { name: string; amount?: number; value?: number }) => {
+  const handleAddLiability = async (data: {
+    name: string;
+    amount?: number;
+    value?: number;
+    date?: string;
+  }) => {
     try {
-      await createLiability({ name: data.name, value: data.value || 0 }).unwrap();
+      await createLiability({
+        name: data.name,
+        value: data.value || 0,
+        date: data.date,
+      }).unwrap();
       refetch();
     } catch (err) {
       console.error("Failed to add liability:", err);
@@ -277,42 +354,41 @@ const Dashboard = () => {
 
   const handleUpdateLiability = async (
     id: string,
-    data: { name: string; amount?: number; value?: number }
+    data: { name: string; amount?: number; value?: number; date?: string },
   ) => {
     try {
-      await updateLiability({ id, name: data.name, value: data.value || 0 }).unwrap();
+      await updateLiability({
+        id,
+        name: data.name,
+        value: data.value || 0,
+        date: data.date,
+      }).unwrap();
       refetch();
     } catch (err) {
       console.error("Failed to update liability:", err);
     }
   };
 
-  const startEditExpense = (category: { id: string; name: string; amount: number }) => {
+  const startEditExpense = (category: {
+    id: string;
+    name: string;
+    amount: number;
+  }) => {
     setEditingExpenseId(category.id);
     setEditExpenseForm({ name: category.name, amount: category.amount });
   };
 
   const cancelEditExpense = () => {
     setEditingExpenseId(null);
-    setEditExpenseForm({ name: '', amount: 0 });
+    setEditExpenseForm({ name: "", amount: 0 });
   };
 
   const saveEditExpense = async (id: string) => {
     if (!editExpenseForm.name.trim()) return;
-    await handleUpdateExpense(id, { name: editExpenseForm.name, amount: editExpenseForm.amount });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "overspent":
-        return "text-red-600 bg-red-100";
-      case "warning":
-        return "text-yellow-600 bg-yellow-100";
-      case "good":
-        return "text-green-600 bg-green-100";
-      default:
-        return "text-gray-600 bg-gray-100";
-    }
+    await handleUpdateExpense(id, {
+      name: editExpenseForm.name,
+      amount: editExpenseForm.amount,
+    });
   };
 
   if (isLoading) {
@@ -345,13 +421,22 @@ const Dashboard = () => {
 
   const getCategoryName = (type: string) => {
     switch (type) {
-      case 'income': return 'Income';
-      case 'expense': return 'Expense Category';
-      case 'asset': return 'Asset';
-      case 'liability': return 'Liability';
-      default: return 'Item';
+      case "income":
+        return "Income";
+      case "expense":
+        return "Expense Category";
+      case "asset":
+        return "Asset";
+      case "liability":
+        return "Liability";
+      default:
+        return "Item";
     }
   };
+
+  // Display filter info if applied
+  const filterInfo = financialData?.filter;
+  const isFilterApplied = filterInfo?.nepaliYear || filterInfo?.dateRange;
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -362,6 +447,21 @@ const Dashboard = () => {
         <p className="text-gray-600">
           Track your income, expense categories, assets, and liabilities
         </p>
+        {isFilterApplied && (
+          <div className="mt-2 rounded-lg bg-blue-50 p-2 text-sm text-blue-800">
+            📊 Showing data for:{" "}
+            {filterInfo?.nepaliYear && filterInfo?.nepaliMonth
+              ? `${filterInfo.nepaliMonthName} ${filterInfo.nepaliYear} BS`
+              : filterInfo?.dateRange
+                ? `${new Date(filterInfo.dateRange.start).toLocaleDateString()} - ${new Date(filterInfo.dateRange.end).toLocaleDateString()}`
+                : "All time"}
+          </div>
+        )}
+      </div>
+
+      {/* Nepali Date Filter */}
+      <div className="mb-6">
+        <NepaliDateFilter onFilterChange={setFilter} initialFilter={filter} />
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -398,7 +498,9 @@ const Dashboard = () => {
           </div>
           <p
             className={`text-2xl font-bold ${
-              totalIncome - totalExpenses >= 0 ? "text-green-600" : "text-red-600"
+              totalIncome - totalExpenses >= 0
+                ? "text-green-600"
+                : "text-red-600"
             }`}
           >
             ${(totalIncome - totalExpenses).toLocaleString()}
@@ -414,12 +516,13 @@ const Dashboard = () => {
           </div>
           <p
             className={`text-2xl font-bold ${
-              financialData?.summary?.netWorth && financialData.summary.netWorth >= 0
+              financialData?.data?.summary?.netWorth &&
+              financialData.data.summary.netWorth >= 0
                 ? "text-green-600"
                 : "text-red-600"
             }`}
           >
-            ${financialData?.summary?.netWorth?.toLocaleString() || "0"}
+            ${financialData?.data?.summary?.netWorth?.toLocaleString() || "0"}
           </p>
         </div>
       </div>
@@ -432,19 +535,21 @@ const Dashboard = () => {
           total={totalIncome}
           onAdd={handleAddIncome}
           onUpdate={handleUpdateIncome}
-          onDelete={(id, name) => handleDeleteClick(id, name, 'income')}
+          onDelete={(id, name) => handleDeleteClick(id, name, "income")}
           icon={TrendingUp}
           color="text-green-600"
           bgColor="bg-white"
         />
 
         {/* Enhanced Expense Categories with integrated budget details and edit controls */}
-        <div className="rounded-xl bg-white shadow-lg overflow-hidden">
+        <div className="overflow-hidden rounded-xl bg-white shadow-lg">
           <div className="border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <TrendingDown className="w-5 h-5 text-red-600" />
-                <h2 className="text-xl font-semibold text-gray-800">Expense Categories</h2>
+                <TrendingDown className="h-5 w-5 text-red-600" />
+                <h2 className="text-xl font-semibold text-gray-800">
+                  Expense Categories
+                </h2>
               </div>
               <button
                 onClick={() => {
@@ -454,20 +559,30 @@ const Dashboard = () => {
                     handleAddExpense({ name, amount: parseFloat(budget) });
                   }
                 }}
-                className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm"
+                className="flex items-center gap-1 rounded-lg bg-blue-500 px-3 py-1.5 text-sm text-white transition-colors hover:bg-blue-600"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
                 </svg>
                 Add Category
               </button>
             </div>
           </div>
-          
+
           {/* Category List with Integrated Budget Details */}
-          <div className="p-6 max-h-[600px] overflow-y-auto">
+          <div className="max-h-[600px] overflow-y-auto p-6">
             <div className="space-y-6">
-              {categorySummaryData?.data?.map((category) => (
+              {categorySummaryData?.data?.data?.map((category) => (
                 <div key={category.id} className="rounded-lg bg-gray-50 p-6">
                   <div className="mb-4 flex items-center justify-between">
                     <div className="flex-1">
@@ -476,136 +591,163 @@ const Dashboard = () => {
                           <input
                             type="text"
                             value={editExpenseForm.name}
-                            onChange={(e) => setEditExpenseForm({ ...editExpenseForm, name: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onChange={(e) =>
+                              setEditExpenseForm({
+                                ...editExpenseForm,
+                                name: e.target.value,
+                              })
+                            }
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Category name"
                             autoFocus
                           />
                           <input
                             type="number"
                             value={editExpenseForm.amount}
-                            onChange={(e) => setEditExpenseForm({ ...editExpenseForm, amount: parseFloat(e.target.value) || 0 })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onChange={(e) =>
+                              setEditExpenseForm({
+                                ...editExpenseForm,
+                                amount: parseFloat(e.target.value) || 0,
+                              })
+                            }
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Budget amount"
                           />
-                          <div className="flex gap-2 mt-2">
+                          <div className="mt-2 flex gap-2">
                             <button
                               onClick={() => saveEditExpense(category.id)}
-                              className="px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm"
+                              className="rounded-lg bg-green-500 px-3 py-1 text-sm text-white hover:bg-green-600"
                             >
                               Save
                             </button>
                             <button
                               onClick={cancelEditExpense}
-                              className="px-3 py-1 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 text-sm"
+                              className="rounded-lg bg-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-400"
                             >
                               Cancel
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <>
-                          <h3 className="text-lg font-semibold text-gray-800">{category.name}</h3>
-                          <span
-                            className={`mt-1 inline-block rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(category.status)}`}
-                          >
-                            {category.status === "overspent"
-                              ? "Over Budget"
-                              : category.status === "warning"
-                                ? "Near Limit"
-                                : "On Track"}
-                          </span>
-                        </>
+                        <div className="flex items-center gap-10">
+                          <div className="">
+                            <h3 className="text-lg font-semibold text-gray-800">
+                              {category.name}
+                            </h3>
+                            <p className="text-lg font-bold text-gray-800">
+                              ${category.budget.toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="mb-1 text-sm text-gray-500">Spent</p>
+                            <p className="text-lg font-bold text-red-600">
+                              ${category.spent.toLocaleString()}
+                            </p>
+                          </div>
+                          {/* Circular Progress */}
+                          {editingExpenseId !== category.id && (
+                            <>
+                              <div className="mb-6 flex justify-center">
+                                <CircularProgress
+                                  percentage={Math.min(
+                                    parseFloat(category.percentageUsed),
+                                    100,
+                                  )}
+                                  size={50}
+                                  strokeWidth={4}
+                                />
+                              </div>
+
+                              {/* Budget Details Grid */}
+                              <div className="grid grid-cols-2 gap-4 pt-4">
+                                <div className="text-center">
+                                  <p className="mb-1 text-sm text-gray-500">
+                                    Remaining
+                                  </p>
+                                  <p
+                                    className={`text-lg font-bold ${
+                                      category.remaining < 0
+                                        ? "text-red-600"
+                                        : "text-green-600"
+                                    }`}
+                                  >
+                                    $
+                                    {Math.abs(
+                                      category.remaining,
+                                    ).toLocaleString()}
+                                    {category.remaining < 0 && (
+                                      <span className="ml-1 text-sm">over</span>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
-                    
+
                     {editingExpenseId !== category.id && (
                       <div className="flex gap-2">
                         <button
-                          onClick={() => startEditExpense({ id: category.id, name: category.name, amount: category.budget })}
-                          className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                          onClick={() =>
+                            startEditExpense({
+                              id: category.id,
+                              name: category.name,
+                              amount: category.budget,
+                            })
+                          }
+                          className="rounded-lg p-2 transition-colors hover:bg-gray-200"
                         >
-                          <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          <svg
+                            className="h-4 w-4 text-blue-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            />
                           </svg>
                         </button>
                         <button
-                          onClick={() => handleDeleteClick(category.id, category.name, 'expense')}
-                          className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                          onClick={() =>
+                            handleDeleteClick(
+                              category.id,
+                              category.name,
+                              "expense",
+                            )
+                          }
+                          className="rounded-lg p-2 transition-colors hover:bg-gray-200"
                         >
-                          <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <svg
+                            className="h-4 w-4 text-red-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
                           </svg>
                         </button>
                       </div>
                     )}
                   </div>
-
-                  {/* Circular Progress */}
-                  {editingExpenseId !== category.id && (
-                    <>
-                      <div className="flex justify-center mb-6">
-                        <CircularProgress 
-                          percentage={Math.min(parseFloat(category.percentageUsed), 100)} 
-                          size={100}
-                          strokeWidth={8}
-                        />
-                      </div>
-
-                      {/* Budget Details Grid */}
-                      <div className="grid grid-cols-2 gap-4 border-t border-gray-200 pt-4">
-                        <div className="text-center">
-                          <p className="text-sm text-gray-500 mb-1">Budget</p>
-                          <p className="text-lg font-bold text-gray-800">
-                            ${category.budget.toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm text-gray-500 mb-1">Spent</p>
-                          <p className="text-lg font-bold text-red-600">
-                            ${category.spent.toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm text-gray-500 mb-1">Remaining</p>
-                          <p className={`text-lg font-bold ${
-                            category.remaining < 0 ? "text-red-600" : "text-green-600"
-                          }`}>
-                            ${Math.abs(category.remaining).toLocaleString()}
-                            {category.remaining < 0 && <span className="text-sm ml-1">over</span>}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm text-gray-500 mb-1">Usage</p>
-                          <p className="text-lg font-bold text-gray-800">
-                            {category.percentageUsed}%
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Linear progress bar for quick reference */}
-                      <div className="mt-4 h-2 w-full rounded-full bg-gray-200 overflow-hidden">
-                        <div
-                          className={`h-2 rounded-full transition-all duration-500 ${
-                            category.status === "overspent"
-                              ? "bg-red-500"
-                              : category.status === "warning"
-                                ? "bg-yellow-500"
-                                : "bg-green-500"
-                          }`}
-                          style={{
-                            width: `${Math.min(parseFloat(category.percentageUsed), 100)}%`,
-                          }}
-                        />
-                      </div>
-                    </>
-                  )}
                 </div>
               ))}
-              
-              {(!categorySummaryData?.data || categorySummaryData.data.length === 0) && (
-                <div className="text-center py-12 text-gray-500">
-                  No expense categories found. Click "Add Category" to track spending.
+
+              {(!categorySummaryData?.data?.data ||
+                categorySummaryData.data.data.length === 0) && (
+                <div className="py-12 text-center text-gray-500">
+                  No expense categories found. Click "Add Category" to track
+                  spending.
                 </div>
               )}
             </div>
@@ -623,7 +765,7 @@ const Dashboard = () => {
           total={totalAssets}
           onAdd={handleAddAsset}
           onUpdate={handleUpdateAsset}
-          onDelete={(id, name) => handleDeleteClick(id, name, 'asset')}
+          onDelete={(id, name) => handleDeleteClick(id, name, "asset")}
           icon={Wallet}
           color="text-blue-600"
           bgColor="bg-white"
@@ -640,7 +782,7 @@ const Dashboard = () => {
           total={totalLiabilities}
           onAdd={handleAddLiability}
           onUpdate={handleUpdateLiability}
-          onDelete={(id, name) => handleDeleteClick(id, name, 'liability')}
+          onDelete={(id, name) => handleDeleteClick(id, name, "liability")}
           icon={AlertTriangle}
           color="text-orange-600"
           bgColor="bg-white"
@@ -659,17 +801,23 @@ const Dashboard = () => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="sm:max-w-[425px]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {itemToDelete && getCategoryName(itemToDelete.type)}</AlertDialogTitle>
+            <AlertDialogTitle>
+              Delete {itemToDelete && getCategoryName(itemToDelete.type)}
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-base">
-              Are you sure you want to delete <span className="font-semibold text-red-600">"{itemToDelete?.name}"</span>?
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-red-600">
+                "{itemToDelete?.name}"
+              </span>
+              ?
               <br />
-              <span className="text-sm text-gray-500 mt-2 block">
+              <span className="mt-2 block text-sm text-gray-500">
                 This action cannot be undone.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-3">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => setDeleteDialogOpen(false)}
               className="mt-0"
             >

@@ -79,24 +79,35 @@ export const createDailyExpense = async (req: Request, res: Response): Promise<v
   }
 };
 
-// Get Daily Expenses
+// Replace the existing getDailyExpenses function with this:
 export const getDailyExpenses = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { page = 1, limit = 10, startDate, endDate, expenseCategoryId } = req.query;
+    const { page = 1, limit = 10, expenseCategoryId } = req.query;
+    
+    // Get date filter from middleware
+    const nepaliFilter = (req as any).nepaliFilter;
+    const dateWhereClause: any = {};
+    
+    if (nepaliFilter?.startDate && nepaliFilter?.endDate) {
+      dateWhereClause.date = {
+        gte: nepaliFilter.startDate,
+        lte: nepaliFilter.endDate,
+      };
+    } else if (nepaliFilter?.startDate) {
+      dateWhereClause.date = { gte: nepaliFilter.startDate };
+    } else if (nepaliFilter?.endDate) {
+      dateWhereClause.date = { lte: nepaliFilter.endDate };
+    }
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    const whereClause: any = { userId: Number(userId) };
-
-    if (startDate && endDate) {
-      whereClause.date = {
-        gte: new Date(startDate as string),
-        lte: new Date(endDate as string),
-      };
-    }
+    const whereClause: any = { 
+      userId: Number(userId),
+      ...dateWhereClause,
+    };
 
     if (expenseCategoryId) {
       whereClause.expenseCategoryId = expenseCategoryId;
@@ -139,6 +150,15 @@ export const getDailyExpenses = async (req: Request, res: Response): Promise<voi
         totalPages: Math.ceil(total / limitNum),
       },
       categoryTotals: expensesByCategory,
+      filter: {
+        nepaliYear: nepaliFilter?.nepaliYear,
+        nepaliMonth: nepaliFilter?.nepaliMonth,
+        nepaliMonthName: nepaliFilter?.nepaliMonthName,
+        dateRange: nepaliFilter?.startDate && nepaliFilter?.endDate ? {
+          start: nepaliFilter.startDate,
+          end: nepaliFilter.endDate,
+        } : null,
+      },
     });
   } catch (error: any) {
     console.error("Error fetching daily expenses:", error);
@@ -277,19 +297,24 @@ export const deleteDailyExpense = async (req: Request, res: Response): Promise<v
 export const getExpenseCategorySummary = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { startDate, endDate } = req.query;
+    const nepaliFilter = (req as any).nepaliFilter;
+    
+    // Build date filter
+    const dateFilter: any = {};
+    if (nepaliFilter?.startDate && nepaliFilter?.endDate) {
+      dateFilter.date = {
+        gte: nepaliFilter.startDate,
+        lte: nepaliFilter.endDate,
+      };
+    } else if (nepaliFilter?.startDate) {
+      dateFilter.date = { gte: nepaliFilter.startDate };
+    } else if (nepaliFilter?.endDate) {
+      dateFilter.date = { lte: nepaliFilter.endDate };
+    }
 
     const expenseCategories = await prisma.expenseCategory.findMany({
       where: { userId: Number(userId) },
     });
-
-    const dateFilter: any = {};
-    if (startDate && endDate) {
-      dateFilter.date = {
-        gte: new Date(startDate as string),
-        lte: new Date(endDate as string),
-      };
-    }
 
     const categorySummaries = await Promise.all(
       expenseCategories.map(async (category) => {
@@ -306,6 +331,16 @@ export const getExpenseCategorySummary = async (req: Request, res: Response): Pr
 
         const spentAmount = spent._sum.amount || 0;
         const remainingAmount = category.amount - spentAmount;
+        const percentageUsed = category.amount > 0 ? (spentAmount / category.amount) * 100 : 0;
+
+        let status: 'overspent' | 'warning' | 'good' = 'good';
+        if (remainingAmount < 0) {
+          status = 'overspent';
+        } else if (percentageUsed >= 80) {
+          status = 'warning';
+        } else {
+          status = 'good';
+        }
 
         return {
           id: category.id,
@@ -313,17 +348,32 @@ export const getExpenseCategorySummary = async (req: Request, res: Response): Pr
           budget: category.amount,
           spent: spentAmount,
           remaining: remainingAmount,
-          percentageUsed: ((spentAmount / category.amount) * 100).toFixed(2),
-          status: remainingAmount < 0 ? 'overspent' : remainingAmount < category.amount * 0.2 ? 'warning' : 'good',
+          percentageUsed: percentageUsed.toFixed(2),
+          status: status,
         };
       })
     );
 
+    const totalBudget = expenseCategories.reduce((sum, cat) => sum + cat.amount, 0);
+    const totalSpent = categorySummaries.reduce((sum, cat) => sum + cat.spent, 0);
+
+    // FIX: Wrap everything in a 'data' property to match frontend expectations
     res.json({
-      data: categorySummaries,
-      summary: {
-        totalBudget: expenseCategories.reduce((sum, cat) => sum + cat.amount, 0),
-        totalSpent: categorySummaries.reduce((sum, cat) => sum + cat.spent, 0),
+      data: {
+        data: categorySummaries,
+        summary: {
+          totalBudget,
+          totalSpent,
+        }
+      },
+      filter: {
+        nepaliYear: nepaliFilter?.nepaliYear,
+        nepaliMonth: nepaliFilter?.nepaliMonth,
+        nepaliMonthName: nepaliFilter?.nepaliMonthName,
+        dateRange: nepaliFilter?.startDate && nepaliFilter?.endDate ? {
+          start: nepaliFilter.startDate,
+          end: nepaliFilter.endDate,
+        } : null,
       },
     });
   } catch (error: any) {
