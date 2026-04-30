@@ -1,5 +1,4 @@
 // client/src/components/FinanceCard.tsx
-
 'use client';
 
 import React, { useState } from 'react';
@@ -56,7 +55,12 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', amount: 0, value: 0, date: '' });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    amount: 0, 
+    value: 0, 
+    date: new Date().toISOString().split('T')[0] 
+  });
 
   const isAmountType = type === 'income' || type === 'expense';
   const isValueType = type === 'asset' || type === 'liability';
@@ -68,7 +72,7 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
       name: formData.name,
       ...(isAmountType && { amount: formData.amount }),
       ...(isValueType && { value: formData.value }),
-      ...(formData.date && { date: formData.date }),
+      date: formData.date,
     };
     
     if (editingId) {
@@ -79,7 +83,7 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
       setIsAdding(false);
     }
     
-    setFormData({ name: '', amount: 0, value: 0, date: '' });
+    setFormData({ name: '', amount: 0, value: 0, date: new Date().toISOString().split('T')[0] });
   };
 
   const handleEdit = (item: FinanceItem) => {
@@ -88,7 +92,7 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
       name: item.name,
       amount: item.amount || 0,
       value: item.value || 0,
-      date: item.date ? item.date.split('T')[0] : '',
+      date: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0],
     });
     setIsAdding(false);
   };
@@ -96,7 +100,7 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ name: '', amount: 0, value: 0, date: '' });
+    setFormData({ name: '', amount: 0, value: 0, date: new Date().toISOString().split('T')[0] });
   };
 
   const getItemIcon = (itemName: string): LucideIcon => {

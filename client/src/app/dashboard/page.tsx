@@ -127,7 +127,7 @@ const Dashboard = () => {
     type: "income" | "expense" | "asset" | "liability" | "dailyExpense";
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   // Expense Category Edit states
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [editExpenseForm, setEditExpenseForm] = useState({
@@ -138,13 +138,36 @@ const Dashboard = () => {
 
   // Daily Expenses states
   const [isAddingDailyExpense, setIsAddingDailyExpense] = useState(false);
-  const [editingDailyExpenseId, setEditingDailyExpenseId] = useState<string | null>(null);
+  const [editingDailyExpenseId, setEditingDailyExpenseId] = useState<
+    string | null
+  >(null);
   const [dailyExpenseForm, setDailyExpenseForm] = useState({
     description: "",
     amount: 0,
     date: new Date().toISOString().split("T")[0],
     expenseCategoryId: "",
   });
+
+  // Add these state variables in the Dashboard component
+  const [isAddingExpenseCategory, setIsAddingExpenseCategory] = useState(false);
+  const [newExpenseCategoryForm, setNewExpenseCategoryForm] = useState({
+    name: "",
+    amount: 0,
+  });
+
+  // Add this handler function
+  const handleAddExpenseCategorySubmit = async () => {
+    if (!newExpenseCategoryForm.name.trim()) return;
+
+    await handleAddExpense({
+      name: newExpenseCategoryForm.name,
+      amount: newExpenseCategoryForm.amount,
+      date: new Date().toISOString().split("T")[0],
+    });
+
+    setIsAddingExpenseCategory(false);
+    setNewExpenseCategoryForm({ name: "", amount: 0 });
+  };
 
   const {
     data: financialData,
@@ -154,10 +177,8 @@ const Dashboard = () => {
   } = useGetFinancialSummaryQuery(filter);
 
   // Use the enhanced getExpenseCategories query instead of categorySummary
-  const { 
-    data: expenseCategoriesData, 
-    refetch: refetchExpenseCategories 
-  } = useGetExpenseCategoriesQuery(filter);
+  const { data: expenseCategoriesData, refetch: refetchExpenseCategories } =
+    useGetExpenseCategoriesQuery(filter);
 
   // Daily Expenses queries
   const {
@@ -187,33 +208,37 @@ const Dashboard = () => {
   const [updateDailyExpense] = useUpdateDailyExpenseMutation();
   const [deleteDailyExpense] = useDeleteDailyExpenseMutation();
 
-  const earnedIncomes = financialData?.data?.details?.earnedIncomes.map((income: any) => ({
-    id: income.id,
-    name: income.name,
-    amount: income.amount,
-    date: income.date,
-  })) || [];
+  const earnedIncomes =
+    financialData?.data?.details?.earnedIncomes.map((income: any) => ({
+      id: income.id,
+      name: income.name,
+      amount: income.amount,
+      date: income.date,
+    })) || [];
 
-  const passiveIncomes = financialData?.data?.details?.passiveIncomes.map((income: any) => ({
-    id: income.id,
-    name: income.name,
-    amount: income.amount,
-    date: income.date,
-  })) || [];
+  const passiveIncomes =
+    financialData?.data?.details?.passiveIncomes.map((income: any) => ({
+      id: income.id,
+      name: income.name,
+      amount: income.amount,
+      date: income.date,
+    })) || [];
 
-  const assets = financialData?.data?.details?.assets.map((asset: any) => ({
-    id: asset.id,
-    name: asset.name,
-    value: asset.value,
-    date: asset.date,
-  })) || [];
+  const assets =
+    financialData?.data?.details?.assets.map((asset: any) => ({
+      id: asset.id,
+      name: asset.name,
+      value: asset.value,
+      date: asset.date,
+    })) || [];
 
-  const liabilities = financialData?.data?.details?.liabilities.map((liab: any) => ({
-    id: liab.id,
-    name: liab.name,
-    value: liab.value,
-    date: liab.date,
-  })) || [];
+  const liabilities =
+    financialData?.data?.details?.liabilities.map((liab: any) => ({
+      id: liab.id,
+      name: liab.name,
+      value: liab.value,
+      date: liab.date,
+    })) || [];
 
   const allIncomes = [...earnedIncomes, ...passiveIncomes].map((income) => ({
     id: income.id,
@@ -238,7 +263,10 @@ const Dashboard = () => {
 
     try {
       if (editingDailyExpenseId) {
-        await updateDailyExpense({ id: editingDailyExpenseId, ...dailyExpenseForm }).unwrap();
+        await updateDailyExpense({
+          id: editingDailyExpenseId,
+          ...dailyExpenseForm,
+        }).unwrap();
         setEditingDailyExpenseId(null);
       } else {
         await createDailyExpense(dailyExpenseForm).unwrap();
@@ -385,7 +413,11 @@ const Dashboard = () => {
       refetch();
       refetchExpenseCategories();
       setEditingExpenseId(null);
-      setEditExpenseForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
+      setEditExpenseForm({
+        name: "",
+        amount: 0,
+        date: new Date().toISOString().split("T")[0],
+      });
     } catch (err) {
       console.error("Failed to update expense category:", err);
     }
@@ -461,7 +493,11 @@ const Dashboard = () => {
     }
   };
 
-  const handleEditExpense = (category: { id: string; name: string; amount: number }) => {
+  const handleEditExpense = (category: {
+    id: string;
+    name: string;
+    amount: number;
+  }) => {
     setEditingExpenseId(category.id);
     setEditExpenseForm({
       name: category.name,
@@ -472,7 +508,11 @@ const Dashboard = () => {
 
   const cancelEditExpense = () => {
     setEditingExpenseId(null);
-    setEditExpenseForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
+    setEditExpenseForm({
+      name: "",
+      amount: 0,
+      date: new Date().toISOString().split("T")[0],
+    });
   };
 
   const saveEditExpense = async () => {
@@ -535,35 +575,28 @@ const Dashboard = () => {
 
   // Calculate totals from expense categories
   const expenseCategories = expenseCategoriesData?.data || [];
-  const totalExpenseCategories = expenseCategories.reduce((sum, cat) => sum + cat.budget, 0);
+  const totalExpenseCategories = expenseCategories.reduce(
+    (sum, cat) => sum + cat.budget,
+    0,
+  );
   const totalSpent = expenseCategories.reduce((sum, cat) => sum + cat.spent, 0);
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold text-gray-800">
-          Financial Dashboard
-        </h1>
-        <p className="text-gray-600">
-          Track your income, expense categories, assets, liabilities, and daily expenses
-        </p>
-        {isFilterApplied && (
-          <div className="mt-2 rounded-lg bg-blue-50 p-2 text-sm text-blue-800">
-            📊 Showing data for:{" "}
-            {filterInfo?.nepaliYear && filterInfo?.nepaliMonth
-              ? `${filterInfo.nepaliMonthName} ${filterInfo.nepaliYear} BS`
-              : filterInfo?.dateRange
-                ? `${new Date(filterInfo.dateRange.start).toLocaleDateString()} - ${new Date(filterInfo.dateRange.end).toLocaleDateString()}`
-                : "All time"}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="mb-2 text-3xl font-bold text-gray-800">
+              Financial Dashboard
+            </h1>
+            <p className="text-gray-600">
+              Track your income, expense categories, assets, liabilities, and
+              daily expenses
+            </p>
           </div>
-        )}
+          <NepaliDateFilter onFilterChange={setFilter} initialFilter={filter} />
+        </div>
       </div>
-
-      {/* Nepali Date Filter */}
-      <div className="mb-6">
-        <NepaliDateFilter onFilterChange={setFilter} initialFilter={filter} />
-      </div>
-
       <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl bg-white p-6 shadow-lg">
           <div className="mb-4 flex items-center justify-between">
@@ -626,7 +659,6 @@ const Dashboard = () => {
           </p>
         </div>
       </div>
-
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <FinanceCard
           title="Income"
@@ -651,32 +683,80 @@ const Dashboard = () => {
                   Expense Categories
                 </h2>
               </div>
-              <button
-                onClick={() => {
-                  const name = prompt("Enter category name:");
-                  const budget = prompt("Enter budget amount:");
-                  if (name && budget) {
-                    handleAddExpense({ 
-                      name, 
-                      amount: parseFloat(budget),
-                      date: new Date().toISOString().split("T")[0]
-                    });
-                  }
-                }}
-                className="flex items-center gap-1 rounded-lg bg-blue-500 px-3 py-1.5 text-sm text-white transition-colors hover:bg-blue-600"
-              >
-                <Plus className="h-4 w-4" />
-                Add Category
-              </button>
+              {/* Add Category Button */}
+              {!isAddingExpenseCategory && !editingExpenseId && (
+                <button
+                  onClick={() => setIsAddingExpenseCategory(true)}
+                  className="flex items-center gap-1 rounded-lg bg-blue-500 px-3 py-1.5 text-white transition-colors hover:bg-blue-600"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="text-sm">Add</span>
+                </button>
+              )}
             </div>
           </div>
 
           {/* Category List with ExpenseCategoryCard */}
           <div className="max-h-[600px] overflow-y-auto p-6">
+            {/* Inline Add Form */}
+            {isAddingExpenseCategory && (
+              <div className="mb-4 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+                <h3 className="mb-3 text-sm font-semibold text-gray-700">
+                  Add New Category
+                </h3>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Category name (e.g., Groceries, Rent, Entertainment)"
+                    value={newExpenseCategoryForm.name}
+                    onChange={(e) =>
+                      setNewExpenseCategoryForm({
+                        ...newExpenseCategoryForm,
+                        name: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                  />
+                  <input
+                    type="number"
+                    placeholder="Budget amount"
+                    value={newExpenseCategoryForm.amount}
+                    onChange={(e) =>
+                      setNewExpenseCategoryForm({
+                        ...newExpenseCategoryForm,
+                        amount: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleAddExpenseCategorySubmit}
+                      className="flex-1 rounded-lg bg-green-500 px-3 py-2 text-sm text-white transition-colors hover:bg-green-600"
+                    >
+                      Save Category
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsAddingExpenseCategory(false);
+                        setNewExpenseCategoryForm({ name: "", amount: 0 });
+                      }}
+                      className="flex-1 rounded-lg bg-gray-300 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-400"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Edit Form */}
             {editingExpenseId && (
               <div className="mb-4 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Edit Category</h3>
+                <h3 className="mb-3 text-sm font-semibold text-gray-700">
+                  Edit Category
+                </h3>
                 <div className="space-y-3">
                   <input
                     type="text"
@@ -706,13 +786,13 @@ const Dashboard = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={saveEditExpense}
-                      className="flex-1 rounded-lg bg-green-500 px-3 py-2 text-sm text-white hover:bg-green-600 transition-colors"
+                      className="flex-1 rounded-lg bg-green-500 px-3 py-2 text-sm text-white transition-colors hover:bg-green-600"
                     >
                       Save
                     </button>
                     <button
                       onClick={cancelEditExpense}
-                      className="flex-1 rounded-lg bg-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-400 transition-colors"
+                      className="flex-1 rounded-lg bg-gray-300 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-400"
                     >
                       Cancel
                     </button>
@@ -727,27 +807,32 @@ const Dashboard = () => {
                   key={category.id}
                   category={category}
                   onEdit={handleEditExpense}
-                  onDelete={(id, name) => handleDeleteClick(id, name, "expense")}
+                  onDelete={(id, name) =>
+                    handleDeleteClick(id, name, "expense")
+                  }
                 />
               ))}
 
-              {expenseCategories.length === 0 && !editingExpenseId && (
-                <div className="py-12 text-center text-gray-500">
-                  No expense categories found. Click "Add Category" to track spending.
-                </div>
-              )}
+              {expenseCategories.length === 0 &&
+                !isAddingExpenseCategory &&
+                !editingExpenseId && (
+                  <div className="py-12 text-center text-gray-500">
+                    No expense categories found. Click "Add New Category" to get
+                    started.
+                  </div>
+                )}
             </div>
 
             {expenseCategories.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="mt-6 border-t border-gray-200 pt-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <div className="rounded-lg bg-gray-50 p-3 text-center">
                     <p className="text-sm text-gray-500">Total Budget</p>
                     <p className="text-xl font-bold text-gray-800">
                       ${totalExpenseCategories.toLocaleString()}
                     </p>
                   </div>
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <div className="rounded-lg bg-gray-50 p-3 text-center">
                     <p className="text-sm text-gray-500">Total Spent</p>
                     <p className="text-xl font-bold text-red-600">
                       ${totalSpent.toLocaleString()}
@@ -793,7 +878,6 @@ const Dashboard = () => {
           bgColor="bg-white"
         />
       </div>
-
       {/* Daily Expenses Section - At the bottom */}
       <div className="mt-8">
         <div className="overflow-hidden rounded-xl bg-white shadow-lg">
@@ -872,7 +956,10 @@ const Dashboard = () => {
                         type="date"
                         value={dailyExpenseForm.date}
                         onChange={(e) =>
-                          setDailyExpenseForm({ ...dailyExpenseForm, date: e.target.value })
+                          setDailyExpenseForm({
+                            ...dailyExpenseForm,
+                            date: e.target.value,
+                          })
                         }
                         className="w-full rounded-lg border py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
@@ -983,8 +1070,8 @@ const Dashboard = () => {
                 {(!dailyExpensesData?.data ||
                   dailyExpensesData.data.length === 0) && (
                   <div className="py-12 text-center text-gray-500">
-                    No daily expenses found for this period. Click "Add Expense" to
-                    get started.
+                    No daily expenses found for this period. Click "Add Expense"
+                    to get started.
                   </div>
                 )}
               </div>
@@ -992,7 +1079,6 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-
       <div className="fixed bottom-6 right-6">
         <button
           onClick={() => {
@@ -1005,7 +1091,6 @@ const Dashboard = () => {
           <RefreshCw className="h-5 w-5" />
         </button>
       </div>
-
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="sm:max-w-[425px]">
           <AlertDialogHeader>

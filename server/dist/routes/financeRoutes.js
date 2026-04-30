@@ -27,7 +27,7 @@ router.put("/passive-income/:id", financeController_1.updatePassiveIncome);
 router.delete("/passive-income/:id", financeController_1.deletePassiveIncome);
 // ==================== EXPENSE ROUTES ====================
 router.post('/expense-category', financeController_1.createExpenseCategory);
-router.get('/expense-category', financeController_1.getExpenseCategories);
+router.get('/expense-category', nepaliDateFilter_1.parseNepaliDateFilter, financeController_1.getExpenseCategories);
 router.get('/expense-category/:id', financeController_1.getExpenseCategoryById);
 router.put('/expense-category/:id', financeController_1.updateExpenseCategory);
 router.delete('/expense-category/:id', financeController_1.deleteExpenseCategory);
