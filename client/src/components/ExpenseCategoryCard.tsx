@@ -74,12 +74,16 @@ interface ExpenseCategoryCardProps {
   };
   onEdit: (category: { id: string; name: string; amount: number }) => void;
   onDelete: (id: string, name: string) => void;
+  isDeleting?: boolean;
+  isEditing?: boolean;
 }
 
 const ExpenseCategoryCard: React.FC<ExpenseCategoryCardProps> = ({
   category,
   onEdit,
   onDelete,
+  isDeleting = false,
+  isEditing = false,
 }) => {
   const getStatusColor = () => {
     switch (category.status) {
@@ -132,24 +136,28 @@ const ExpenseCategoryCard: React.FC<ExpenseCategoryCardProps> = ({
 
         <div className="flex gap-1">
           <button
-            onClick={() =>
-              onEdit({
-                id: category.id,
-                name: category.name,
-                amount: category.budget,
-              })
-            }
-            className="rounded-lg p-1.5 transition-colors hover:bg-gray-100"
+            onClick={() => onEdit({
+              id: category.id,
+              name: category.name,
+              amount: category.budget,
+            })}
+            disabled={isEditing || isDeleting}
+            className="rounded-lg p-1.5 transition-colors hover:bg-gray-100 disabled:opacity-50"
             title="Edit category"
           >
             <Pencil className="h-4 w-4 text-blue-500" />
           </button>
           <button
             onClick={() => onDelete(category.id, category.name)}
-            className="rounded-lg p-1.5 transition-colors hover:bg-gray-100"
+            disabled={isDeleting}
+            className="rounded-lg p-1.5 transition-colors hover:bg-gray-100 disabled:opacity-50"
             title="Delete category"
           >
-            <Trash2 className="h-4 w-4 text-red-500" />
+            {isDeleting ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent"></div>
+            ) : (
+              <Trash2 className="h-4 w-4 text-red-500" />
+            )}
           </button>
         </div>
       </div>

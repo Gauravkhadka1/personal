@@ -83,6 +83,8 @@ export interface FinancialSummary {
     totalLiabilities: number;
     netCashFlow: number;
     netWorth: number;
+    currentCash: number;
+      totalDailyExpenses: number; 
   };
   details: {
     earnedIncomes: EarnedIncome[];

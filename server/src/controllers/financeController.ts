@@ -901,12 +901,15 @@ export const deleteLiability = async (req: Request, res: Response): Promise<void
 
 // ==================== SUMMARY CONTROLLER ====================
 
+
+
+
 export const getFinancialSummary = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
     const nepaliFilter = (req as any).nepaliFilter;
     
-    // Build date filter using the 'date' field instead of 'createdAt'
+    // Build date filter using the 'date' field
     const dateWhereClause: any = {};
     if (nepaliFilter?.startDate && nepaliFilter?.endDate) {
       dateWhereClause.date = {
@@ -919,7 +922,8 @@ export const getFinancialSummary = async (req: Request, res: Response): Promise<
       dateWhereClause.date = { lte: nepaliFilter.endDate };
     }
 
-    const [earnedIncomes, passiveIncomes, expenseCategories, assets, liabilities] = await Promise.all([
+    // Get all financial data
+    const [earnedIncomes, passiveIncomes, expenseCategories, assets, liabilities, dailyExpenses] = await Promise.all([
       prisma.earnedIncome.findMany({ 
         where: { 
           userId: Number(userId),
@@ -950,6 +954,16 @@ export const getFinancialSummary = async (req: Request, res: Response): Promise<
           ...dateWhereClause,
         } 
       }),
+      // Add daily expenses to calculate actual spent amount
+      prisma.dailyExpense.findMany({
+        where: {
+          userId: Number(userId),
+          ...dateWhereClause,
+        },
+        select: {
+          amount: true,
+        }
+      }),
     ]);
 
     const totalEarnedIncome = earnedIncomes.reduce((sum, item) => sum + item.amount, 0);
@@ -962,7 +976,12 @@ export const getFinancialSummary = async (req: Request, res: Response): Promise<
     const netCashFlow = totalIncome - totalExpenses;
     const netWorth = totalAssets - totalLiabilities;
 
-    // FIX: Wrap the entire response in a 'data' property
+    // Calculate total daily expenses (actual spent money)
+    const totalDailyExpenses = dailyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    
+    // Calculate current cash (Total Income - Actual Daily Expenses)
+    const currentCash = totalIncome - totalDailyExpenses;
+
     res.json({
       data: {
         filter: {
@@ -978,11 +997,13 @@ export const getFinancialSummary = async (req: Request, res: Response): Promise<
           totalEarnedIncome,
           totalPassiveIncome,
           totalIncome,
-          totalExpenses,
+          totalExpenses, // This is category budgets
           totalAssets,
           totalLiabilities,
           netCashFlow,
           netWorth,
+          currentCash, // This is income - actual daily expenses
+          totalDailyExpenses, // Add this to show actual spent amount
         },
         details: {
           earnedIncomes,

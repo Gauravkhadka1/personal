@@ -30,6 +30,9 @@ interface FinanceCardProps {
   icon: React.ElementType;
   color: string;
   bgColor: string;
+  isAdding?: boolean;
+  isDeleting?: boolean;
+  isUpdating?: boolean;
 }
 
 const FinanceCard: React.FC<FinanceCardProps> = ({
@@ -43,6 +46,9 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
   icon: Icon,
   color,
   bgColor,
+  isAdding = false,
+  isDeleting = false,
+  isUpdating = false,
 }) => {
   const fieldLabel = type === "asset" || type === "liability" ? "Value" : "Amount";
 
@@ -56,10 +62,24 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
           </div>
           <button
             onClick={onAdd}
-            className="flex items-center gap-1 rounded-lg bg-blue-500 px-3 py-1.5 text-white transition-colors hover:bg-blue-600"
+            disabled={isAdding}
+            className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-white transition-colors ${
+              isAdding
+                ? "bg-blue-300 cursor-not-allowed"
+                : "bg-blue-500 hover:bg-blue-600"
+            }`}
           >
-            <Plus className="h-4 w-4" />
-            <span className="text-sm">Add</span>
+            {isAdding ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <span className="text-sm">Adding...</span>
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                <span className="text-sm">Add</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -94,14 +114,16 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
                   {onEdit && (
                     <button
                       onClick={() => onEdit(item)}
-                      className="rounded-lg p-1.5 transition-colors hover:bg-gray-100"
+                      disabled={isUpdating || isDeleting}
+                      className="rounded-lg p-1.5 transition-colors hover:bg-gray-100 disabled:opacity-50"
                     >
                       <Pencil className="h-4 w-4 text-blue-500" />
                     </button>
                   )}
                   <button
                     onClick={() => onDelete(item.id, item.name)}
-                    className="rounded-lg p-1.5 transition-colors hover:bg-gray-100"
+                    disabled={isDeleting}
+                    className="rounded-lg p-1.5 transition-colors hover:bg-gray-100 disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </button>

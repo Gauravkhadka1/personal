@@ -59,7 +59,17 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Modal Components
-const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) => {
+const Modal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -69,7 +79,7 @@ const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose:
           <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 hover:bg-gray-100 transition-colors"
+            className="rounded-lg p-1 transition-colors hover:bg-gray-100"
           >
             <X className="h-5 w-5 text-gray-500" />
           </button>
@@ -90,14 +100,22 @@ const Dashboard = () => {
   }>({});
 
   // Category filter state
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<
+    string | null
+  >(null);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{
     id: string;
     name: string;
-    type: "income" | "passiveIncome" | "expense" | "asset" | "liability" | "dailyExpense";
+    type:
+      | "income"
+      | "passiveIncome"
+      | "expense"
+      | "asset"
+      | "liability"
+      | "dailyExpense";
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -109,13 +127,18 @@ const Dashboard = () => {
   const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
   const [isEditAssetModalOpen, setIsEditAssetModalOpen] = useState(false);
   const [isAddLiabilityModalOpen, setIsAddLiabilityModalOpen] = useState(false);
-  const [isEditLiabilityModalOpen, setIsEditLiabilityModalOpen] = useState(false);
-  const [isAddDailyExpenseModalOpen, setIsAddDailyExpenseModalOpen] = useState(false);
-  const [isEditDailyExpenseModalOpen, setIsEditDailyExpenseModalOpen] = useState(false);
+  const [isEditLiabilityModalOpen, setIsEditLiabilityModalOpen] =
+    useState(false);
+  const [isAddDailyExpenseModalOpen, setIsAddDailyExpenseModalOpen] =
+    useState(false);
+  const [isEditDailyExpenseModalOpen, setIsEditDailyExpenseModalOpen] =
+    useState(false);
 
   // Income Edit states (both earned and passive)
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
-  const [editingIncomeType, setEditingIncomeType] = useState<"earned" | "passive">("earned");
+  const [editingIncomeType, setEditingIncomeType] = useState<
+    "earned" | "passive"
+  >("earned");
   const [editIncomeForm, setEditIncomeForm] = useState({
     name: "",
     amount: 0,
@@ -145,7 +168,9 @@ const Dashboard = () => {
   });
 
   // Liability Edit states
-  const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(null);
+  const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(
+    null,
+  );
   const [editLiabilityForm, setEditLiabilityForm] = useState({
     name: "",
     value: 0,
@@ -175,7 +200,9 @@ const Dashboard = () => {
   });
 
   // Daily Expenses states
-  const [editingDailyExpenseId, setEditingDailyExpenseId] = useState<string | null>(null);
+  const [editingDailyExpenseId, setEditingDailyExpenseId] = useState<
+    string | null
+  >(null);
   const [dailyExpenseForm, setDailyExpenseForm] = useState({
     description: "",
     amount: 0,
@@ -196,9 +223,11 @@ const Dashboard = () => {
   // Daily Expenses query with category filter
   const dailyExpensesFilter = {
     ...filter,
-    ...(selectedCategoryFilter && { expenseCategoryId: selectedCategoryFilter }),
+    ...(selectedCategoryFilter && {
+      expenseCategoryId: selectedCategoryFilter,
+    }),
   };
-  
+
   const {
     data: dailyExpensesData,
     isLoading: dailyExpensesLoading,
@@ -309,7 +338,9 @@ const Dashboard = () => {
     setDailyExpenseForm({
       description: expense.description,
       amount: expense.amount,
-      date: expense.date ? expense.date.split("T")[0] : new Date().toISOString().split("T")[0],
+      date: expense.date
+        ? expense.date.split("T")[0]
+        : new Date().toISOString().split("T")[0],
       expenseCategoryId: expense.expenseCategoryId,
     });
     setIsEditDailyExpenseModalOpen(true);
@@ -327,7 +358,13 @@ const Dashboard = () => {
   const handleDeleteClick = (
     id: string,
     name: string,
-    type: "income" | "passiveIncome" | "expense" | "asset" | "liability" | "dailyExpense",
+    type:
+      | "income"
+      | "passiveIncome"
+      | "expense"
+      | "asset"
+      | "liability"
+      | "dailyExpense",
   ) => {
     setItemToDelete({ id, name, type });
     setDeleteDialogOpen(true);
@@ -373,7 +410,7 @@ const Dashboard = () => {
 
   const handleAddIncome = async () => {
     if (!addIncomeForm.name.trim()) return;
-    
+
     try {
       await createEarnedIncome({
         name: addIncomeForm.name,
@@ -382,7 +419,11 @@ const Dashboard = () => {
       }).unwrap();
       refetch();
       setIsAddIncomeModalOpen(false);
-      setAddIncomeForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
+      setAddIncomeForm({
+        name: "",
+        amount: 0,
+        date: new Date().toISOString().split("T")[0],
+      });
     } catch (err) {
       console.error("Failed to add income:", err);
     }
@@ -390,7 +431,7 @@ const Dashboard = () => {
 
   const handleUpdateIncome = async () => {
     if (!editIncomeForm.name.trim() || editingIncomeId === null) return;
-    
+
     try {
       if (editingIncomeType === "earned") {
         await updateEarnedIncome({
@@ -410,7 +451,11 @@ const Dashboard = () => {
       refetch();
       setEditingIncomeId(null);
       setIsEditIncomeModalOpen(false);
-      setEditIncomeForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
+      setEditIncomeForm({
+        name: "",
+        amount: 0,
+        date: new Date().toISOString().split("T")[0],
+      });
     } catch (err) {
       console.error("Failed to update income:", err);
     }
@@ -418,7 +463,7 @@ const Dashboard = () => {
 
   const handleAddPassiveIncome = async () => {
     if (!addIncomeForm.name.trim()) return;
-    
+
     try {
       await createPassiveIncome({
         name: addIncomeForm.name,
@@ -427,7 +472,11 @@ const Dashboard = () => {
       }).unwrap();
       refetch();
       setIsAddIncomeModalOpen(false);
-      setAddIncomeForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
+      setAddIncomeForm({
+        name: "",
+        amount: 0,
+        date: new Date().toISOString().split("T")[0],
+      });
     } catch (err) {
       console.error("Failed to add passive income:", err);
     }
@@ -435,7 +484,7 @@ const Dashboard = () => {
 
   const handleAddExpense = async () => {
     if (!addExpenseForm.name.trim()) return;
-    
+
     try {
       await createExpenseCategory({
         name: addExpenseForm.name,
@@ -445,7 +494,11 @@ const Dashboard = () => {
       refetch();
       refetchExpenseCategories();
       setIsAddExpenseModalOpen(false);
-      setAddExpenseForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
+      setAddExpenseForm({
+        name: "",
+        amount: 0,
+        date: new Date().toISOString().split("T")[0],
+      });
     } catch (err) {
       console.error("Failed to add expense category:", err);
     }
@@ -453,7 +506,7 @@ const Dashboard = () => {
 
   const handleUpdateExpense = async () => {
     if (!editExpenseForm.name.trim() || editingExpenseId === null) return;
-    
+
     try {
       await updateExpenseCategory({
         id: editingExpenseId,
@@ -465,7 +518,11 @@ const Dashboard = () => {
       refetchExpenseCategories();
       setEditingExpenseId(null);
       setIsEditExpenseModalOpen(false);
-      setEditExpenseForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
+      setEditExpenseForm({
+        name: "",
+        amount: 0,
+        date: new Date().toISOString().split("T")[0],
+      });
     } catch (err) {
       console.error("Failed to update expense category:", err);
     }
@@ -473,7 +530,7 @@ const Dashboard = () => {
 
   const handleAddAsset = async () => {
     if (!addAssetForm.name.trim()) return;
-    
+
     try {
       await createAsset({
         name: addAssetForm.name,
@@ -482,7 +539,11 @@ const Dashboard = () => {
       }).unwrap();
       refetch();
       setIsAddAssetModalOpen(false);
-      setAddAssetForm({ name: "", value: 0, date: new Date().toISOString().split("T")[0] });
+      setAddAssetForm({
+        name: "",
+        value: 0,
+        date: new Date().toISOString().split("T")[0],
+      });
     } catch (err) {
       console.error("Failed to add asset:", err);
     }
@@ -490,7 +551,7 @@ const Dashboard = () => {
 
   const handleUpdateAsset = async () => {
     if (!editAssetForm.name.trim() || editingAssetId === null) return;
-    
+
     try {
       await updateAsset({
         id: editingAssetId,
@@ -501,7 +562,11 @@ const Dashboard = () => {
       refetch();
       setEditingAssetId(null);
       setIsEditAssetModalOpen(false);
-      setEditAssetForm({ name: "", value: 0, date: new Date().toISOString().split("T")[0] });
+      setEditAssetForm({
+        name: "",
+        value: 0,
+        date: new Date().toISOString().split("T")[0],
+      });
     } catch (err) {
       console.error("Failed to update asset:", err);
     }
@@ -509,7 +574,7 @@ const Dashboard = () => {
 
   const handleAddLiability = async () => {
     if (!addLiabilityForm.name.trim()) return;
-    
+
     try {
       await createLiability({
         name: addLiabilityForm.name,
@@ -518,7 +583,11 @@ const Dashboard = () => {
       }).unwrap();
       refetch();
       setIsAddLiabilityModalOpen(false);
-      setAddLiabilityForm({ name: "", value: 0, date: new Date().toISOString().split("T")[0] });
+      setAddLiabilityForm({
+        name: "",
+        value: 0,
+        date: new Date().toISOString().split("T")[0],
+      });
     } catch (err) {
       console.error("Failed to add liability:", err);
     }
@@ -526,7 +595,7 @@ const Dashboard = () => {
 
   const handleUpdateLiability = async () => {
     if (!editLiabilityForm.name.trim() || editingLiabilityId === null) return;
-    
+
     try {
       await updateLiability({
         id: editingLiabilityId,
@@ -537,7 +606,11 @@ const Dashboard = () => {
       refetch();
       setEditingLiabilityId(null);
       setIsEditLiabilityModalOpen(false);
-      setEditLiabilityForm({ name: "", value: 0, date: new Date().toISOString().split("T")[0] });
+      setEditLiabilityForm({
+        name: "",
+        value: 0,
+        date: new Date().toISOString().split("T")[0],
+      });
     } catch (err) {
       console.error("Failed to update liability:", err);
     }
@@ -553,7 +626,9 @@ const Dashboard = () => {
     setEditExpenseForm({
       name: category.name,
       amount: category.amount,
-      date: category.date ? category.date.split("T")[0] : new Date().toISOString().split("T")[0],
+      date: category.date
+        ? category.date.split("T")[0]
+        : new Date().toISOString().split("T")[0],
     });
     setIsEditExpenseModalOpen(true);
   };
@@ -570,7 +645,9 @@ const Dashboard = () => {
     setEditIncomeForm({
       name: item.name,
       amount: item.amount,
-      date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
+      date: item.date
+        ? item.date.split("T")[0]
+        : new Date().toISOString().split("T")[0],
     });
     setIsEditIncomeModalOpen(true);
   };
@@ -581,7 +658,9 @@ const Dashboard = () => {
     setEditAssetForm({
       name: item.name,
       value: item.value,
-      date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
+      date: item.date
+        ? item.date.split("T")[0]
+        : new Date().toISOString().split("T")[0],
     });
     setIsEditAssetModalOpen(true);
   };
@@ -592,7 +671,9 @@ const Dashboard = () => {
     setEditLiabilityForm({
       name: item.name,
       value: item.value,
-      date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
+      date: item.date
+        ? item.date.split("T")[0]
+        : new Date().toISOString().split("T")[0],
     });
     setIsEditLiabilityModalOpen(true);
   };
@@ -798,7 +879,7 @@ const Dashboard = () => {
 
             {expenseCategories.length > 0 && (
               <div className="mt-6 border-t border-gray-200 pt-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-lg bg-gray-50 p-3 text-center">
                     <p className="text-sm text-gray-500">Total Budget</p>
                     <p className="text-xl font-bold text-gray-800">
@@ -809,6 +890,27 @@ const Dashboard = () => {
                     <p className="text-sm text-gray-500">Total Spent</p>
                     <p className="text-xl font-bold text-red-600">
                       ${totalSpent.toLocaleString()}
+                    </p>
+                  </div>
+                  {/* Current Cash Section */}
+                  <div className="rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-4 text-center">
+                    <div className="mb-2 flex items-center justify-center gap-2">
+                      <Wallet className="h-5 w-5 text-green-600" />
+                      <p className="text-sm font-medium text-gray-700">
+                        Current Cash
+                      </p>
+                    </div>
+                    <p
+                      className={`text-2xl font-bold ${
+                        (financialData?.data?.summary?.currentCash || 0) >= 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      $
+                      {(
+                        financialData?.data?.summary?.currentCash || 0
+                      ).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -907,12 +1009,14 @@ const Dashboard = () => {
                     />
                   )}
                 </button>
-                
+
                 {/* Filter Dropdown */}
                 {showCategoryFilter && (
                   <div className="absolute right-0 top-full z-10 mt-2 w-64 rounded-lg border border-gray-200 bg-white shadow-lg">
                     <div className="border-b border-gray-200 px-4 py-2">
-                      <h3 className="font-medium text-gray-800">Filter by Category</h3>
+                      <h3 className="font-medium text-gray-800">
+                        Filter by Category
+                      </h3>
                     </div>
                     <div className="max-h-64 overflow-y-auto p-2">
                       <button
@@ -944,7 +1048,7 @@ const Dashboard = () => {
                   </div>
                 )}
               </div>
-              
+
               <button
                 onClick={() => {
                   setEditingDailyExpenseId(null);
@@ -970,7 +1074,10 @@ const Dashboard = () => {
                 {dailyExpensesData?.groupedByNepaliDate &&
                 dailyExpensesData.groupedByNepaliDate.length > 0 ? (
                   dailyExpensesData.groupedByNepaliDate.map((group) => (
-                    <div key={group.englishDate} className="overflow-hidden rounded-lg border border-gray-200">
+                    <div
+                      key={group.englishDate}
+                      className="overflow-hidden rounded-lg border border-gray-200"
+                    >
                       {/* Date Header with Nepali Date */}
                       <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 px-4">
                         <div className="flex items-center gap-4">
@@ -978,22 +1085,25 @@ const Dashboard = () => {
                             {group.nepaliDate}
                           </h3>
                           <p className="text-xs text-gray-500">
-                            {new Date(group.englishDate).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })}
+                            {new Date(group.englishDate).toLocaleDateString(
+                              "en-US",
+                              {
+                                weekday: "long",
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              },
+                            )}
                           </p>
                         </div>
-                        <div className="text-right flex items-center gap-4">
+                        <div className="flex items-center gap-4 text-right">
                           <p className="text-sm text-gray-500">Total for day</p>
                           <p className="text-xl font-bold text-red-600">
                             ${group.totalAmount.toLocaleString()}
                           </p>
                         </div>
                       </div>
-                      
+
                       {/* Expenses List for this date */}
                       <div className="divide-y divide-gray-100">
                         {group.expenses.map((expense) => (
@@ -1022,7 +1132,9 @@ const Dashboard = () => {
                               </p>
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => handleEditDailyExpense(expense)}
+                                  onClick={() =>
+                                    handleEditDailyExpense(expense)
+                                  }
                                   className="rounded-lg p-2 hover:bg-gray-200"
                                 >
                                   <Pencil className="h-4 w-4 text-blue-500" />
@@ -1048,7 +1160,7 @@ const Dashboard = () => {
                   ))
                 ) : (
                   <div className="py-12 text-center text-gray-500">
-                    {selectedCategoryFilter 
+                    {selectedCategoryFilter
                       ? "No expenses found for the selected category in this period."
                       : "No daily expenses found for this period. Click 'Add Expense' to get started."}
                   </div>
@@ -1074,37 +1186,56 @@ const Dashboard = () => {
       </div>
 
       {/* Add Income Modal */}
-      <Modal isOpen={isAddIncomeModalOpen} onClose={() => setIsAddIncomeModalOpen(false)} title="Add Income">
+      <Modal
+        isOpen={isAddIncomeModalOpen}
+        onClose={() => setIsAddIncomeModalOpen(false)}
+        title="Add Income"
+      >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Name
+            </label>
             <input
               type="text"
               placeholder="e.g., Salary, Freelance"
               value={addIncomeForm.name}
-              onChange={(e) => setAddIncomeForm({ ...addIncomeForm, name: e.target.value })}
+              onChange={(e) =>
+                setAddIncomeForm({ ...addIncomeForm, name: e.target.value })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Amount</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Amount
+            </label>
             <input
               type="number"
               placeholder="0.00"
               value={addIncomeForm.amount}
-              onChange={(e) => setAddIncomeForm({ ...addIncomeForm, amount: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                setAddIncomeForm({
+                  ...addIncomeForm,
+                  amount: parseFloat(e.target.value) || 0,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="date"
                 value={addIncomeForm.date}
-                onChange={(e) => setAddIncomeForm({ ...addIncomeForm, date: e.target.value })}
+                onChange={(e) =>
+                  setAddIncomeForm({ ...addIncomeForm, date: e.target.value })
+                }
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1127,35 +1258,54 @@ const Dashboard = () => {
       </Modal>
 
       {/* Edit Income Modal */}
-      <Modal isOpen={isEditIncomeModalOpen} onClose={() => setIsEditIncomeModalOpen(false)} title="Edit Income">
+      <Modal
+        isOpen={isEditIncomeModalOpen}
+        onClose={() => setIsEditIncomeModalOpen(false)}
+        title="Edit Income"
+      >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Name
+            </label>
             <input
               type="text"
               value={editIncomeForm.name}
-              onChange={(e) => setEditIncomeForm({ ...editIncomeForm, name: e.target.value })}
+              onChange={(e) =>
+                setEditIncomeForm({ ...editIncomeForm, name: e.target.value })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Amount</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Amount
+            </label>
             <input
               type="number"
               value={editIncomeForm.amount}
-              onChange={(e) => setEditIncomeForm({ ...editIncomeForm, amount: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                setEditIncomeForm({
+                  ...editIncomeForm,
+                  amount: parseFloat(e.target.value) || 0,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="date"
                 value={editIncomeForm.date}
-                onChange={(e) => setEditIncomeForm({ ...editIncomeForm, date: e.target.value })}
+                onChange={(e) =>
+                  setEditIncomeForm({ ...editIncomeForm, date: e.target.value })
+                }
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1178,37 +1328,56 @@ const Dashboard = () => {
       </Modal>
 
       {/* Add Expense Category Modal */}
-      <Modal isOpen={isAddExpenseModalOpen} onClose={() => setIsAddExpenseModalOpen(false)} title="Add Expense Category">
+      <Modal
+        isOpen={isAddExpenseModalOpen}
+        onClose={() => setIsAddExpenseModalOpen(false)}
+        title="Add Expense Category"
+      >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Category Name</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Category Name
+            </label>
             <input
               type="text"
               placeholder="e.g., Groceries, Rent, Entertainment"
               value={addExpenseForm.name}
-              onChange={(e) => setAddExpenseForm({ ...addExpenseForm, name: e.target.value })}
+              onChange={(e) =>
+                setAddExpenseForm({ ...addExpenseForm, name: e.target.value })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Budget Amount</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Budget Amount
+            </label>
             <input
               type="number"
               placeholder="0.00"
               value={addExpenseForm.amount}
-              onChange={(e) => setAddExpenseForm({ ...addExpenseForm, amount: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                setAddExpenseForm({
+                  ...addExpenseForm,
+                  amount: parseFloat(e.target.value) || 0,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="date"
                 value={addExpenseForm.date}
-                onChange={(e) => setAddExpenseForm({ ...addExpenseForm, date: e.target.value })}
+                onChange={(e) =>
+                  setAddExpenseForm({ ...addExpenseForm, date: e.target.value })
+                }
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1231,35 +1400,57 @@ const Dashboard = () => {
       </Modal>
 
       {/* Edit Expense Category Modal */}
-      <Modal isOpen={isEditExpenseModalOpen} onClose={() => setIsEditExpenseModalOpen(false)} title="Edit Expense Category">
+      <Modal
+        isOpen={isEditExpenseModalOpen}
+        onClose={() => setIsEditExpenseModalOpen(false)}
+        title="Edit Expense Category"
+      >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Category Name</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Category Name
+            </label>
             <input
               type="text"
               value={editExpenseForm.name}
-              onChange={(e) => setEditExpenseForm({ ...editExpenseForm, name: e.target.value })}
+              onChange={(e) =>
+                setEditExpenseForm({ ...editExpenseForm, name: e.target.value })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Budget Amount</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Budget Amount
+            </label>
             <input
               type="number"
               value={editExpenseForm.amount}
-              onChange={(e) => setEditExpenseForm({ ...editExpenseForm, amount: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                setEditExpenseForm({
+                  ...editExpenseForm,
+                  amount: parseFloat(e.target.value) || 0,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="date"
                 value={editExpenseForm.date}
-                onChange={(e) => setEditExpenseForm({ ...editExpenseForm, date: e.target.value })}
+                onChange={(e) =>
+                  setEditExpenseForm({
+                    ...editExpenseForm,
+                    date: e.target.value,
+                  })
+                }
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1282,37 +1473,56 @@ const Dashboard = () => {
       </Modal>
 
       {/* Add Asset Modal */}
-      <Modal isOpen={isAddAssetModalOpen} onClose={() => setIsAddAssetModalOpen(false)} title="Add Asset">
+      <Modal
+        isOpen={isAddAssetModalOpen}
+        onClose={() => setIsAddAssetModalOpen(false)}
+        title="Add Asset"
+      >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Name
+            </label>
             <input
               type="text"
               placeholder="e.g., House, Car, Stocks"
               value={addAssetForm.name}
-              onChange={(e) => setAddAssetForm({ ...addAssetForm, name: e.target.value })}
+              onChange={(e) =>
+                setAddAssetForm({ ...addAssetForm, name: e.target.value })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Value</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Value
+            </label>
             <input
               type="number"
               placeholder="0.00"
               value={addAssetForm.value}
-              onChange={(e) => setAddAssetForm({ ...addAssetForm, value: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                setAddAssetForm({
+                  ...addAssetForm,
+                  value: parseFloat(e.target.value) || 0,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="date"
                 value={addAssetForm.date}
-                onChange={(e) => setAddAssetForm({ ...addAssetForm, date: e.target.value })}
+                onChange={(e) =>
+                  setAddAssetForm({ ...addAssetForm, date: e.target.value })
+                }
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1335,35 +1545,54 @@ const Dashboard = () => {
       </Modal>
 
       {/* Edit Asset Modal */}
-      <Modal isOpen={isEditAssetModalOpen} onClose={() => setIsEditAssetModalOpen(false)} title="Edit Asset">
+      <Modal
+        isOpen={isEditAssetModalOpen}
+        onClose={() => setIsEditAssetModalOpen(false)}
+        title="Edit Asset"
+      >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Name
+            </label>
             <input
               type="text"
               value={editAssetForm.name}
-              onChange={(e) => setEditAssetForm({ ...editAssetForm, name: e.target.value })}
+              onChange={(e) =>
+                setEditAssetForm({ ...editAssetForm, name: e.target.value })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Value</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Value
+            </label>
             <input
               type="number"
               value={editAssetForm.value}
-              onChange={(e) => setEditAssetForm({ ...editAssetForm, value: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                setEditAssetForm({
+                  ...editAssetForm,
+                  value: parseFloat(e.target.value) || 0,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="date"
                 value={editAssetForm.date}
-                onChange={(e) => setEditAssetForm({ ...editAssetForm, date: e.target.value })}
+                onChange={(e) =>
+                  setEditAssetForm({ ...editAssetForm, date: e.target.value })
+                }
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1386,37 +1615,62 @@ const Dashboard = () => {
       </Modal>
 
       {/* Add Liability Modal */}
-      <Modal isOpen={isAddLiabilityModalOpen} onClose={() => setIsAddLiabilityModalOpen(false)} title="Add Liability">
+      <Modal
+        isOpen={isAddLiabilityModalOpen}
+        onClose={() => setIsAddLiabilityModalOpen(false)}
+        title="Add Liability"
+      >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Name
+            </label>
             <input
               type="text"
               placeholder="e.g., Mortgage, Car Loan, Credit Card"
               value={addLiabilityForm.name}
-              onChange={(e) => setAddLiabilityForm({ ...addLiabilityForm, name: e.target.value })}
+              onChange={(e) =>
+                setAddLiabilityForm({
+                  ...addLiabilityForm,
+                  name: e.target.value,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Value</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Value
+            </label>
             <input
               type="number"
               placeholder="0.00"
               value={addLiabilityForm.value}
-              onChange={(e) => setAddLiabilityForm({ ...addLiabilityForm, value: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                setAddLiabilityForm({
+                  ...addLiabilityForm,
+                  value: parseFloat(e.target.value) || 0,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="date"
                 value={addLiabilityForm.date}
-                onChange={(e) => setAddLiabilityForm({ ...addLiabilityForm, date: e.target.value })}
+                onChange={(e) =>
+                  setAddLiabilityForm({
+                    ...addLiabilityForm,
+                    date: e.target.value,
+                  })
+                }
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1439,35 +1693,60 @@ const Dashboard = () => {
       </Modal>
 
       {/* Edit Liability Modal */}
-      <Modal isOpen={isEditLiabilityModalOpen} onClose={() => setIsEditLiabilityModalOpen(false)} title="Edit Liability">
+      <Modal
+        isOpen={isEditLiabilityModalOpen}
+        onClose={() => setIsEditLiabilityModalOpen(false)}
+        title="Edit Liability"
+      >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Name
+            </label>
             <input
               type="text"
               value={editLiabilityForm.name}
-              onChange={(e) => setEditLiabilityForm({ ...editLiabilityForm, name: e.target.value })}
+              onChange={(e) =>
+                setEditLiabilityForm({
+                  ...editLiabilityForm,
+                  name: e.target.value,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Value</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Value
+            </label>
             <input
               type="number"
               value={editLiabilityForm.value}
-              onChange={(e) => setEditLiabilityForm({ ...editLiabilityForm, value: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                setEditLiabilityForm({
+                  ...editLiabilityForm,
+                  value: parseFloat(e.target.value) || 0,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="date"
                 value={editLiabilityForm.date}
-                onChange={(e) => setEditLiabilityForm({ ...editLiabilityForm, date: e.target.value })}
+                onChange={(e) =>
+                  setEditLiabilityForm({
+                    ...editLiabilityForm,
+                    date: e.target.value,
+                  })
+                }
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1490,46 +1769,78 @@ const Dashboard = () => {
       </Modal>
 
       {/* Add Daily Expense Modal */}
-      <Modal isOpen={isAddDailyExpenseModalOpen} onClose={() => setIsAddDailyExpenseModalOpen(false)} title="Add Daily Expense">
+      <Modal
+        isOpen={isAddDailyExpenseModalOpen}
+        onClose={() => setIsAddDailyExpenseModalOpen(false)}
+        title="Add Daily Expense"
+      >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Description
+            </label>
             <input
               type="text"
               placeholder="e.g., Grocery shopping"
               value={dailyExpenseForm.description}
-              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, description: e.target.value })}
+              onChange={(e) =>
+                setDailyExpenseForm({
+                  ...dailyExpenseForm,
+                  description: e.target.value,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Amount</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Amount
+            </label>
             <input
               type="number"
               placeholder="0.00"
               value={dailyExpenseForm.amount}
-              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, amount: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                setDailyExpenseForm({
+                  ...dailyExpenseForm,
+                  amount: parseFloat(e.target.value) || 0,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="date"
                 value={dailyExpenseForm.date}
-                onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, date: e.target.value })}
+                onChange={(e) =>
+                  setDailyExpenseForm({
+                    ...dailyExpenseForm,
+                    date: e.target.value,
+                  })
+                }
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Category
+            </label>
             <select
               value={dailyExpenseForm.expenseCategoryId}
-              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, expenseCategoryId: e.target.value })}
+              onChange={(e) =>
+                setDailyExpenseForm({
+                  ...dailyExpenseForm,
+                  expenseCategoryId: e.target.value,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select category</option>
@@ -1561,44 +1872,76 @@ const Dashboard = () => {
       </Modal>
 
       {/* Edit Daily Expense Modal */}
-      <Modal isOpen={isEditDailyExpenseModalOpen} onClose={() => setIsEditDailyExpenseModalOpen(false)} title="Edit Daily Expense">
+      <Modal
+        isOpen={isEditDailyExpenseModalOpen}
+        onClose={() => setIsEditDailyExpenseModalOpen(false)}
+        title="Edit Daily Expense"
+      >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Description
+            </label>
             <input
               type="text"
               value={dailyExpenseForm.description}
-              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, description: e.target.value })}
+              onChange={(e) =>
+                setDailyExpenseForm({
+                  ...dailyExpenseForm,
+                  description: e.target.value,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Amount</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Amount
+            </label>
             <input
               type="number"
               value={dailyExpenseForm.amount}
-              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, amount: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                setDailyExpenseForm({
+                  ...dailyExpenseForm,
+                  amount: parseFloat(e.target.value) || 0,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date
+            </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="date"
                 value={dailyExpenseForm.date}
-                onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, date: e.target.value })}
+                onChange={(e) =>
+                  setDailyExpenseForm({
+                    ...dailyExpenseForm,
+                    date: e.target.value,
+                  })
+                }
                 className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Category
+            </label>
             <select
               value={dailyExpenseForm.expenseCategoryId}
-              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, expenseCategoryId: e.target.value })}
+              onChange={(e) =>
+                setDailyExpenseForm({
+                  ...dailyExpenseForm,
+                  expenseCategoryId: e.target.value,
+                })
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select category</option>
