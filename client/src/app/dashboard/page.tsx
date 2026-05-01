@@ -972,7 +972,7 @@ const Dashboard = () => {
                   dailyExpensesData.groupedByNepaliDate.map((group) => (
                     <div key={group.englishDate} className="overflow-hidden rounded-lg border border-gray-200">
                       {/* Date Header with Nepali Date */}
-                      <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3">
+                      <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 px-4">
                         <div className="flex items-center gap-4">
                           <h3 className="text-lg font-semibold text-gray-800">
                             {group.nepaliDate}
@@ -1003,9 +1003,9 @@ const Dashboard = () => {
                           >
                             <div className="flex items-center gap-4">
                               <div className="rounded-lg bg-red-100 p-2">
-                                <TrendingDown className="h-5 w-5 text-red-500" />
+                                <TrendingDown className="h-4 w-4 text-red-500" />
                               </div>
-                              <div>
+                              <div className="flex items-center gap-2">
                                 <p className="font-medium text-gray-800">
                                   {expense.description}
                                 </p>

@@ -78,7 +78,7 @@ export const createDailyExpense = async (req: Request, res: Response): Promise<v
 export const getDailyExpenses = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { page = 1, limit = 10, expenseCategoryId } = req.query;
+    const { page = 1, limit = 1000, expenseCategoryId } = req.query;
     
     const nepaliFilter = (req as any).nepaliFilter;
     const dateWhereClause: any = {};
