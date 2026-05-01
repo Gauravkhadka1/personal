@@ -1036,7 +1036,7 @@ const Dashboard = () => {
                     <div key={group.englishDate} className="overflow-hidden rounded-lg border border-gray-200">
                       {/* Date Header with Nepali Date */}
                       <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3">
-                        <div>
+                        <div className="flex items-center gap-4">
                           <h3 className="text-lg font-semibold text-gray-800">
                             {group.nepaliDate}
                           </h3>
@@ -1049,7 +1049,7 @@ const Dashboard = () => {
                             })}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex items-center gap-4">
                           <p className="text-sm text-gray-500">Total for day</p>
                           <p className="text-xl font-bold text-red-600">
                             ${group.totalAmount.toLocaleString()}
