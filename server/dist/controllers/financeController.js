@@ -827,7 +827,7 @@ const getFinancialSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
     try {
         const userId = req.userId;
         const nepaliFilter = req.nepaliFilter;
-        // Build date filter using the 'date' field instead of 'createdAt'
+        // Build date filter using the 'date' field
         const dateWhereClause = {};
         if ((nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.startDate) && (nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.endDate)) {
             dateWhereClause.date = {
@@ -841,7 +841,8 @@ const getFinancialSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
         else if (nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.endDate) {
             dateWhereClause.date = { lte: nepaliFilter.endDate };
         }
-        const [earnedIncomes, passiveIncomes, expenseCategories, assets, liabilities] = yield Promise.all([
+        // Get all financial data
+        const [earnedIncomes, passiveIncomes, expenseCategories, assets, liabilities, dailyExpenses] = yield Promise.all([
             prisma.earnedIncome.findMany({
                 where: Object.assign({ userId: Number(userId) }, dateWhereClause)
             }),
@@ -857,6 +858,13 @@ const getFinancialSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
             prisma.liability.findMany({
                 where: Object.assign({ userId: Number(userId) }, dateWhereClause)
             }),
+            // Add daily expenses to calculate actual spent amount
+            prisma.dailyExpense.findMany({
+                where: Object.assign({ userId: Number(userId) }, dateWhereClause),
+                select: {
+                    amount: true,
+                }
+            }),
         ]);
         const totalEarnedIncome = earnedIncomes.reduce((sum, item) => sum + item.amount, 0);
         const totalPassiveIncome = passiveIncomes.reduce((sum, item) => sum + item.amount, 0);
@@ -866,7 +874,10 @@ const getFinancialSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
         const totalIncome = totalEarnedIncome + totalPassiveIncome;
         const netCashFlow = totalIncome - totalExpenses;
         const netWorth = totalAssets - totalLiabilities;
-        // FIX: Wrap the entire response in a 'data' property
+        // Calculate total daily expenses (actual spent money)
+        const totalDailyExpenses = dailyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+        // Calculate current cash (Total Income - Actual Daily Expenses)
+        const currentCash = totalIncome - totalDailyExpenses;
         res.json({
             data: {
                 filter: {
@@ -882,11 +893,13 @@ const getFinancialSummary = (req, res) => __awaiter(void 0, void 0, void 0, func
                     totalEarnedIncome,
                     totalPassiveIncome,
                     totalIncome,
-                    totalExpenses,
+                    totalExpenses, // This is category budgets
                     totalAssets,
                     totalLiabilities,
                     netCashFlow,
                     netWorth,
+                    currentCash, // This is income - actual daily expenses
+                    totalDailyExpenses, // Add this to show actual spent amount
                 },
                 details: {
                     earnedIncomes,

@@ -75,7 +75,7 @@ exports.createDailyExpense = createDailyExpense;
 const getDailyExpenses = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.userId;
-        const { page = 1, limit = 10, expenseCategoryId } = req.query;
+        const { page = 1, limit = 1000, expenseCategoryId } = req.query;
         const nepaliFilter = req.nepaliFilter;
         const dateWhereClause = {};
         if ((nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.startDate) && (nepaliFilter === null || nepaliFilter === void 0 ? void 0 : nepaliFilter.endDate)) {

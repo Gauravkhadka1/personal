@@ -857,7 +857,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="max-h-[600px] overflow-y-auto p-6">
+          <div className="max-h-[600px] overflow-y-auto px-6 pt-2">
             <div className="space-y-2">
               {expenseCategories.map((category) => (
                 <ExpenseCategoryCard
@@ -878,8 +878,8 @@ const Dashboard = () => {
             </div>
 
             {expenseCategories.length > 0 && (
-              <div className="mt-6 border-t border-gray-200 pt-4">
-                <div className="grid grid-cols-3 gap-2">
+              <div className="mt-6 border-t border-gray-200 pt-2 sticky bottom-0">
+                <div className="grid grid-cols-3 gap-2 ">
                   <div className="rounded-lg bg-gray-50 p-3 text-center">
                     <p className="text-sm text-gray-500">Total Budget</p>
                     <p className="text-xl font-bold text-gray-800">
