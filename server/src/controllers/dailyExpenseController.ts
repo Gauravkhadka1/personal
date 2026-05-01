@@ -2,6 +2,7 @@
 
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { getNepaliDateDetails, formatNepaliDate } from "../utils/nepaliCalendar";
 
 const prisma = new PrismaClient();
 
@@ -17,16 +18,12 @@ export const createDailyExpense = async (req: Request, res: Response): Promise<v
     }
 
     if (typeof amount !== 'number' || amount <= 0) {
-      res.status(400).json({ message: "Amount must be a positive number" });
+      res.status(400).json({ message: "Amount must be positive number" });
       return;
     }
 
-    // Verify the expense category exists and belongs to the user
     const expenseCategory = await prisma.expenseCategory.findFirst({
-      where: {
-        id: expenseCategoryId,
-        userId: Number(userId),
-      },
+      where: { id: expenseCategoryId, userId: Number(userId) },
     });
 
     if (!expenseCategory) {
@@ -34,15 +31,9 @@ export const createDailyExpense = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // Check if expense would exceed category budget
     const totalDailyExpenses = await prisma.dailyExpense.aggregate({
-      where: {
-        expenseCategoryId,
-        userId: Number(userId),
-      },
-      _sum: {
-        amount: true,
-      },
+      where: { expenseCategoryId, userId: Number(userId) },
+      _sum: { amount: true },
     });
 
     const currentSpent = totalDailyExpenses._sum.amount || 0;
@@ -57,16 +48,20 @@ export const createDailyExpense = async (req: Request, res: Response): Promise<v
         expenseCategoryId,
         userId: Number(userId),
       },
-      include: {
-        expenseCategory: true,
-      },
+      include: { expenseCategory: true },
     });
 
+    // Add Nepali date to response
+    const nepaliDate = getNepaliDateDetails(new Date(date));
+    
     res.status(201).json({
       message: remaining < 0 
         ? `Warning: This expense exceeds the category budget by $${Math.abs(remaining).toFixed(2)}`
         : "Daily expense created successfully",
-      data: dailyExpense,
+      data: {
+        ...dailyExpense,
+        nepaliDate: nepaliDate ? formatNepaliDate(new Date(date)) : null,
+      },
       budgetInfo: {
         categoryBudget: expenseCategory.amount,
         spent: newTotal,
@@ -79,13 +74,12 @@ export const createDailyExpense = async (req: Request, res: Response): Promise<v
   }
 };
 
-// Replace the existing getDailyExpenses function with this:
+// Enhanced getDailyExpenses with grouping by Nepali date and category filtering
 export const getDailyExpenses = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
     const { page = 1, limit = 10, expenseCategoryId } = req.query;
     
-    // Get date filter from middleware
     const nepaliFilter = (req as any).nepaliFilter;
     const dateWhereClause: any = {};
     
@@ -110,7 +104,7 @@ export const getDailyExpenses = async (req: Request, res: Response): Promise<voi
     };
 
     if (expenseCategoryId) {
-      whereClause.expenseCategoryId = expenseCategoryId;
+      whereClause.expenseCategoryId = expenseCategoryId as string;
     }
 
     const [dailyExpenses, total] = await Promise.all([
@@ -121,28 +115,54 @@ export const getDailyExpenses = async (req: Request, res: Response): Promise<voi
         orderBy: { date: 'desc' },
         include: {
           expenseCategory: {
-            select: {
-              id: true,
-              name: true,
-              amount: true,
-            },
+            select: { id: true, name: true, amount: true },
           },
         },
       }),
       prisma.dailyExpense.count({ where: whereClause }),
     ]);
 
+    // Group expenses by Nepali date
+    const groupedByNepaliDate: { [key: string]: { nepaliDate: string; englishDate: string; expenses: any[]; totalAmount: number } } = {};
+    
+    for (const expense of dailyExpenses) {
+      const nepaliDateInfo = getNepaliDateDetails(expense.date);
+      const nepaliDateKey = nepaliDateInfo 
+        ? `${nepaliDateInfo.year}-${nepaliDateInfo.month}-${nepaliDateInfo.day}`
+        : expense.date.toISOString().split('T')[0];
+      
+      const nepaliDateDisplay = nepaliDateInfo 
+        ? formatNepaliDate(expense.date)
+        : expense.date.toLocaleDateString();
+      
+      if (!groupedByNepaliDate[nepaliDateKey]) {
+        groupedByNepaliDate[nepaliDateKey] = {
+          nepaliDate: nepaliDateDisplay,
+          englishDate: expense.date.toISOString().split('T')[0],
+          expenses: [],
+          totalAmount: 0,
+        };
+      }
+      
+      groupedByNepaliDate[nepaliDateKey].expenses.push(expense);
+      groupedByNepaliDate[nepaliDateKey].totalAmount += expense.amount;
+    }
+
+    // Convert to array and sort by date (most recent first)
+    const groupedExpenses = Object.values(groupedByNepaliDate).sort((a, b) => 
+      new Date(b.englishDate).getTime() - new Date(a.englishDate).getTime()
+    );
+
     // Calculate totals per category
     const expensesByCategory = await prisma.dailyExpense.groupBy({
       by: ['expenseCategoryId'],
       where: whereClause,
-      _sum: {
-        amount: true,
-      },
+      _sum: { amount: true },
     });
 
     res.json({
       data: dailyExpenses,
+      groupedByNepaliDate: groupedExpenses,
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -173,18 +193,9 @@ export const getDailyExpenseById = async (req: Request, res: Response): Promise<
     const { id } = req.params;
 
     const dailyExpense = await prisma.dailyExpense.findFirst({
-      where: {
-        id,
-        userId: Number(userId),
-      },
+      where: { id, userId: Number(userId) },
       include: {
-        expenseCategory: {
-          select: {
-            id: true,
-            name: true,
-            amount: true,
-          },
-        },
+        expenseCategory: { select: { id: true, name: true, amount: true } },
       },
     });
 
@@ -193,7 +204,14 @@ export const getDailyExpenseById = async (req: Request, res: Response): Promise<
       return;
     }
 
-    res.json({ data: dailyExpense });
+    const nepaliDate = getNepaliDateDetails(dailyExpense.date);
+    
+    res.json({ 
+      data: {
+        ...dailyExpense,
+        nepaliDate: nepaliDate ? formatNepaliDate(dailyExpense.date) : null,
+      } 
+    });
   } catch (error: any) {
     console.error("Error fetching daily expense:", error);
     res.status(500).json({ message: `Error fetching daily expense: ${error.message}` });
@@ -208,13 +226,8 @@ export const updateDailyExpense = async (req: Request, res: Response): Promise<v
     const { description, amount, date, expenseCategoryId } = req.body;
 
     const existingDailyExpense = await prisma.dailyExpense.findFirst({
-      where: {
-        id,
-        userId: Number(userId),
-      },
-      include: {
-        expenseCategory: true,
-      },
+      where: { id, userId: Number(userId) },
+      include: { expenseCategory: true },
     });
 
     if (!existingDailyExpense) {
@@ -229,12 +242,8 @@ export const updateDailyExpense = async (req: Request, res: Response): Promise<v
 
     if (expenseCategoryId) {
       const expenseCategory = await prisma.expenseCategory.findFirst({
-        where: {
-          id: expenseCategoryId,
-          userId: Number(userId),
-        },
+        where: { id: expenseCategoryId, userId: Number(userId) },
       });
-
       if (!expenseCategory) {
         res.status(404).json({ message: "Expense category not found" });
         return;
@@ -249,14 +258,17 @@ export const updateDailyExpense = async (req: Request, res: Response): Promise<v
         date: date ? new Date(date) : existingDailyExpense.date,
         expenseCategoryId: expenseCategoryId || existingDailyExpense.expenseCategoryId,
       },
-      include: {
-        expenseCategory: true,
-      },
+      include: { expenseCategory: true },
     });
+
+    const nepaliDate = getNepaliDateDetails(updatedDailyExpense.date);
 
     res.json({
       message: "Daily expense updated successfully",
-      data: updatedDailyExpense,
+      data: {
+        ...updatedDailyExpense,
+        nepaliDate: nepaliDate ? formatNepaliDate(updatedDailyExpense.date) : null,
+      },
     });
   } catch (error: any) {
     console.error("Error updating daily expense:", error);
@@ -271,10 +283,7 @@ export const deleteDailyExpense = async (req: Request, res: Response): Promise<v
     const { id } = req.params;
 
     const existingDailyExpense = await prisma.dailyExpense.findFirst({
-      where: {
-        id,
-        userId: Number(userId),
-      },
+      where: { id, userId: Number(userId) },
     });
 
     if (!existingDailyExpense) {
@@ -282,10 +291,7 @@ export const deleteDailyExpense = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    await prisma.dailyExpense.delete({
-      where: { id },
-    });
-
+    await prisma.dailyExpense.delete({ where: { id } });
     res.json({ message: "Daily expense deleted successfully" });
   } catch (error: any) {
     console.error("Error deleting daily expense:", error);
@@ -299,7 +305,6 @@ export const getExpenseCategorySummary = async (req: Request, res: Response): Pr
     const userId = (req as any).userId;
     const nepaliFilter = (req as any).nepaliFilter;
     
-    // Build date filter
     const dateFilter: any = {};
     if (nepaliFilter?.startDate && nepaliFilter?.endDate) {
       dateFilter.date = {
@@ -324,9 +329,7 @@ export const getExpenseCategorySummary = async (req: Request, res: Response): Pr
             userId: Number(userId),
             ...dateFilter,
           },
-          _sum: {
-            amount: true,
-          },
+          _sum: { amount: true },
         });
 
         const spentAmount = spent._sum.amount || 0;
@@ -338,8 +341,6 @@ export const getExpenseCategorySummary = async (req: Request, res: Response): Pr
           status = 'overspent';
         } else if (percentageUsed >= 80) {
           status = 'warning';
-        } else {
-          status = 'good';
         }
 
         return {
@@ -357,14 +358,10 @@ export const getExpenseCategorySummary = async (req: Request, res: Response): Pr
     const totalBudget = expenseCategories.reduce((sum, cat) => sum + cat.amount, 0);
     const totalSpent = categorySummaries.reduce((sum, cat) => sum + cat.spent, 0);
 
-    // FIX: Wrap everything in a 'data' property to match frontend expectations
     res.json({
       data: {
         data: categorySummaries,
-        summary: {
-          totalBudget,
-          totalSpent,
-        }
+        summary: { totalBudget, totalSpent },
       },
       filter: {
         nepaliYear: nepaliFilter?.nepaliYear,

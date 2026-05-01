@@ -1,3 +1,5 @@
+// server/src/utils/nepaliCalendar.ts
+
 export interface NepaliMonthRange {
   nepaliMonth: number;
   nepaliMonthName: string;
@@ -5,13 +7,19 @@ export interface NepaliMonthRange {
   endDate: Date;
 }
 
+export interface NepaliDateInfo {
+  year: number;
+  month: number;
+  monthName: string;
+  day: number;
+  englishDate: Date;
+}
+
 /**
- * Complete Nepali month data structure for years 2080-2082
- * Including corrected data for 2082 based on your requirements
+ * Complete Nepali month data structure for years 2080-2083
  */
 const NEPALI_YEAR_DATA = {
   2080: {
-    // 2080 BS = 2023/2024 AD
     1: { start: '2023-04-14', end: '2023-05-14' },  // Baisakh
     2: { start: '2023-05-15', end: '2023-06-15' },  // Jestha
     3: { start: '2023-06-16', end: '2023-07-16' },  // Ashadh
@@ -26,7 +34,6 @@ const NEPALI_YEAR_DATA = {
     12: { start: '2024-03-14', end: '2024-04-12' }, // Chaitra
   },
   2081: {
-    // 2081 BS = 2024/2025 AD
     1: { start: '2024-04-13', end: '2024-05-13' },  // Baisakh
     2: { start: '2024-05-14', end: '2024-06-14' },  // Jestha
     3: { start: '2024-06-15', end: '2024-07-15' },  // Ashadh
@@ -41,8 +48,7 @@ const NEPALI_YEAR_DATA = {
     12: { start: '2025-03-14', end: '2025-04-13' }, // Chaitra
   },
   2082: {
-    // 2082 BS = 2025/2026 AD
-    1: { start: '2025-04-14', end: '2025-05-14' },  // Baisakh (corrected based on your input)
+    1: { start: '2025-04-14', end: '2025-05-14' },  // Baisakh
     2: { start: '2025-05-15', end: '2025-06-14' },  // Jestha
     3: { start: '2025-06-15', end: '2025-07-16' },  // Ashadh
     4: { start: '2025-07-17', end: '2025-08-16' },  // Shrawan
@@ -56,8 +62,7 @@ const NEPALI_YEAR_DATA = {
     12: { start: '2026-03-15', end: '2026-04-13' }, // Chaitra
   },
   2083: {
-    // 2082 BS = 2025/2026 AD
-    1: { start: '2026-04-14', end: '2026-05-14' },  // Baisakh (corrected based on your input)
+    1: { start: '2026-04-14', end: '2026-05-14' },  // Baisakh
     2: { start: '2026-05-15', end: '2026-06-14' },  // Jestha
     3: { start: '2026-06-15', end: '2026-07-16' },  // Ashadh
     4: { start: '2026-07-17', end: '2026-08-16' },  // Shrawan
@@ -87,24 +92,15 @@ export const NEPALI_MONTH_NAMES: { [key: number]: string } = {
   12: 'Chaitra'
 };
 
-// All the functions remain the same as in your original code
-// They will automatically work with the extended data
-
-/**
- * Get all 12 months with English date ranges for a specific Nepali year
- */
 export function getNepaliYearMonths(nepaliYear: number): NepaliMonthRange[] {
   const yearData = NEPALI_YEAR_DATA[nepaliYear as keyof typeof NEPALI_YEAR_DATA];
-
   if (!yearData) {
     throw new Error(`No data available for Nepali year ${nepaliYear}`);
   }
 
   const months: NepaliMonthRange[] = [];
-
   for (let month = 1; month <= 12; month++) {
     const monthData = yearData[month as keyof typeof yearData];
-
     months.push({
       nepaliMonth: month,
       nepaliMonthName: NEPALI_MONTH_NAMES[month],
@@ -112,70 +108,44 @@ export function getNepaliYearMonths(nepaliYear: number): NepaliMonthRange[] {
       endDate: new Date(monthData.end)
     });
   }
-
   return months;
 }
 
-/**
- * Get current Nepali year (approximate)
- */
 export function getCurrentNepaliYear(): number {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
   const currentDay = currentDate.getDate();
-
   let nepaliYear = currentYear + 57;
-
-  // Adjust for transition around April
   if (currentMonth < 3 || (currentMonth === 3 && currentDay < 14)) {
     nepaliYear--;
   }
-
   return nepaliYear;
 }
 
-/**
- * Format date to YYYY-MM-DD string
- */
 export function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-/**
- * Get specific month range for a Nepali year
- */
 export function getNepaliMonthRange(nepaliYear: number, nepaliMonth: number): NepaliMonthRange | null {
   const months = getNepaliYearMonths(nepaliYear);
   return months.find(month => month.nepaliMonth === nepaliMonth) || null;
 }
 
-/**
- * Check if date is within a Nepali month
- */
 export function isDateInNepaliMonth(date: Date, nepaliYear: number, nepaliMonth: number): boolean {
   const monthRange = getNepaliMonthRange(nepaliYear, nepaliMonth);
   if (!monthRange) return false;
-
   return date >= monthRange.startDate && date <= monthRange.endDate;
 }
 
-/**
- * Get available Nepali years in the system
- */
 export function getAvailableNepaliYears(): number[] {
   return Object.keys(NEPALI_YEAR_DATA).map(Number).sort();
 }
 
-/**
- * Get Nepali month for a given English date
- */
 export function getNepaliMonthFromDate(date: Date): { year: number; month: number; monthName: string } | null {
   const years = getAvailableNepaliYears();
-
   for (const year of years) {
     const months = getNepaliYearMonths(year);
-
     for (const month of months) {
       if (date >= month.startDate && date <= month.endDate) {
         return {
@@ -186,31 +156,16 @@ export function getNepaliMonthFromDate(date: Date): { year: number; month: numbe
       }
     }
   }
-
   return null;
 }
 
-export function hasCustomYearData(nepaliYear: number): boolean {
-  return (NEPALI_YEAR_DATA as any)[nepaliYear] !== undefined;
-}
-
-/**
- * NEW: Helper function to get individual day mapping
- * This function helps understand day-by-day mapping for debugging
- */
-export function getNepaliDateDetails(englishDate: Date): {
-  nepaliYear: number;
-  nepaliMonth: number;
-  nepaliMonthName: string;
-  nepaliDay: number;
-} | null {
+// NEW: Get detailed Nepali date including day number
+export function getNepaliDateDetails(englishDate: Date): NepaliDateInfo | null {
   const monthInfo = getNepaliMonthFromDate(englishDate);
-  
   if (!monthInfo) {
     return null;
   }
   
-  // Calculate the day number within the month
   const monthRange = getNepaliMonthRange(monthInfo.year, monthInfo.month);
   if (!monthRange) {
     return null;
@@ -219,40 +174,39 @@ export function getNepaliDateDetails(englishDate: Date): {
   const dayDiff = Math.floor(
     (englishDate.getTime() - monthRange.startDate.getTime()) / (1000 * 60 * 60 * 24)
   );
-  
-  const nepaliDay = dayDiff + 1; // Add 1 because day 1 should be 1, not 0
+  const nepaliDay = dayDiff + 1;
   
   return {
-    nepaliYear: monthInfo.year,
-    nepaliMonth: monthInfo.month,
-    nepaliMonthName: monthInfo.monthName,
-    nepaliDay: nepaliDay
+    year: monthInfo.year,
+    month: monthInfo.month,
+    monthName: monthInfo.monthName,
+    day: nepaliDay,
+    englishDate: englishDate
   };
 }
 
-/**
- * Example usage for your specific dates:
- * To verify the mapping for Baishak 1 and Baishak 2 of 2082:
- */
-export function test2082Mapping(): void {
-  // Test Baishak 1, 2082 = April 14, 2025
-  const baishak1 = new Date('2025-04-14');
-  const baishak1Info = getNepaliDateDetails(baishak1);
-  console.log('Baishak 1, 2082:', baishak1Info);
-  
-  // Test Baishak 2, 2082 = April 15, 2025
-  const baishak2 = new Date('2025-04-15');
-  const baishak2Info = getNepaliDateDetails(baishak2);
-  console.log('Baishak 2, 2082:', baishak2Info);
-  
-  // Test month ranges for 2082
-  const months2082 = getNepaliYearMonths(2082);
-  console.log('\n2082 BS Month Ranges:');
-  months2082.forEach(month => {
-    console.log(`${month.nepaliMonthName} (${month.nepaliMonth}): ${formatDate(month.startDate)} to ${formatDate(month.endDate)}`);
-  });
+// NEW: Format Nepali date as string (e.g., "Baisakh 1, 2082")
+export function formatNepaliDate(englishDate: Date): string {
+  const nepaliDate = getNepaliDateDetails(englishDate);
+  if (!nepaliDate) {
+    return englishDate.toLocaleDateString();
+  }
+  return `${nepaliDate.monthName} ${nepaliDate.day}, ${nepaliDate.year}`;
 }
 
+// NEW: Batch convert multiple dates to Nepali date objects
+export function batchGetNepaliDates(dates: Date[]): Map<string, NepaliDateInfo> {
+  const dateMap = new Map<string, NepaliDateInfo>();
+  for (const date of dates) {
+    const key = date.toISOString().split('T')[0];
+    const nepaliDate = getNepaliDateDetails(date);
+    if (nepaliDate) {
+      dateMap.set(key, nepaliDate);
+    }
+  }
+  return dateMap;
+}
 
-
-// You can call test2082Mapping() to verify the dates
+export function hasCustomYearData(nepaliYear: number): boolean {
+  return (NEPALI_YEAR_DATA as any)[nepaliYear] !== undefined;
+}

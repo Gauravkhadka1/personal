@@ -15,6 +15,8 @@ import {
   Calendar,
   DollarSign,
   FileText,
+  Filter,
+  X,
 } from "lucide-react";
 import FinanceCard from "@/components/FinanceCard";
 import NepaliDateFilter from "@/components/NepaliDateFilter";
@@ -55,62 +57,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Circular Progress Component (for other uses if needed)
-const CircularProgress = ({
-  percentage,
-  size = 120,
-  strokeWidth = 8,
-}: {
-  percentage: number;
-  size?: number;
-  strokeWidth?: number;
-}) => {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (percentage / 100) * circumference;
-
-  const getColor = () => {
-    if (percentage >= 100) return "#ef4444";
-    if (percentage >= 80) return "#eab308";
-    return "#10b981";
-  };
-
-  return (
-    <div
-      className="relative inline-flex items-center justify-center"
-      style={{ width: size, height: size }}
-    >
-      <svg className="-rotate-90 transform" width={size} height={size}>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="#e5e7eb"
-          strokeWidth={strokeWidth}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={getColor()}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="transition-all duration-500 ease-out"
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl font-bold text-gray-800">
-          {Math.min(Math.round(percentage), 100)}%
-        </span>
-      </div>
-    </div>
-  );
-};
-
 const Dashboard = () => {
   const { user } = useAuth();
   const [filter, setFilter] = useState<{
@@ -119,6 +65,10 @@ const Dashboard = () => {
     startDate?: string;
     endDate?: string;
   }>({});
+
+  // Category filter state
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{
@@ -138,9 +88,7 @@ const Dashboard = () => {
 
   // Daily Expenses states
   const [isAddingDailyExpense, setIsAddingDailyExpense] = useState(false);
-  const [editingDailyExpenseId, setEditingDailyExpenseId] = useState<
-    string | null
-  >(null);
+  const [editingDailyExpenseId, setEditingDailyExpenseId] = useState<string | null>(null);
   const [dailyExpenseForm, setDailyExpenseForm] = useState({
     description: "",
     amount: 0,
@@ -148,26 +96,11 @@ const Dashboard = () => {
     expenseCategoryId: "",
   });
 
-  // Add these state variables in the Dashboard component
   const [isAddingExpenseCategory, setIsAddingExpenseCategory] = useState(false);
   const [newExpenseCategoryForm, setNewExpenseCategoryForm] = useState({
     name: "",
     amount: 0,
   });
-
-  // Add this handler function
-  const handleAddExpenseCategorySubmit = async () => {
-    if (!newExpenseCategoryForm.name.trim()) return;
-
-    await handleAddExpense({
-      name: newExpenseCategoryForm.name,
-      amount: newExpenseCategoryForm.amount,
-      date: new Date().toISOString().split("T")[0],
-    });
-
-    setIsAddingExpenseCategory(false);
-    setNewExpenseCategoryForm({ name: "", amount: 0 });
-  };
 
   const {
     data: financialData,
@@ -176,16 +109,20 @@ const Dashboard = () => {
     refetch,
   } = useGetFinancialSummaryQuery(filter);
 
-  // Use the enhanced getExpenseCategories query instead of categorySummary
   const { data: expenseCategoriesData, refetch: refetchExpenseCategories } =
     useGetExpenseCategoriesQuery(filter);
 
-  // Daily Expenses queries
+  // Daily Expenses query with category filter
+  const dailyExpensesFilter = {
+    ...filter,
+    ...(selectedCategoryFilter && { expenseCategoryId: selectedCategoryFilter }),
+  };
+  
   const {
     data: dailyExpensesData,
     isLoading: dailyExpensesLoading,
     refetch: refetchDailyExpenses,
-  } = useGetDailyExpensesQuery(filter);
+  } = useGetDailyExpensesQuery(dailyExpensesFilter);
 
   const [createEarnedIncome] = useCreateEarnedIncomeMutation();
   const [updateEarnedIncome] = useUpdateEarnedIncomeMutation();
@@ -203,7 +140,6 @@ const Dashboard = () => {
   const [updateLiability] = useUpdateLiabilityMutation();
   const [deleteLiability] = useDeleteLiabilityMutation();
 
-  // Daily Expenses mutations
   const [createDailyExpense] = useCreateDailyExpenseMutation();
   const [updateDailyExpense] = useUpdateDailyExpenseMutation();
   const [deleteDailyExpense] = useDeleteDailyExpenseMutation();
@@ -524,6 +460,24 @@ const Dashboard = () => {
     });
   };
 
+  const handleAddExpenseCategorySubmit = async () => {
+    if (!newExpenseCategoryForm.name.trim()) return;
+
+    await handleAddExpense({
+      name: newExpenseCategoryForm.name,
+      amount: newExpenseCategoryForm.amount,
+      date: new Date().toISOString().split("T")[0],
+    });
+
+    setIsAddingExpenseCategory(false);
+    setNewExpenseCategoryForm({ name: "", amount: 0 });
+  };
+
+  const handleClearCategoryFilter = () => {
+    setSelectedCategoryFilter(null);
+    setShowCategoryFilter(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -569,11 +523,6 @@ const Dashboard = () => {
     }
   };
 
-  // Display filter info if applied
-  const filterInfo = financialData?.filter;
-  const isFilterApplied = filterInfo?.nepaliYear || filterInfo?.dateRange;
-
-  // Calculate totals from expense categories
   const expenseCategories = expenseCategoriesData?.data || [];
   const totalExpenseCategories = expenseCategories.reduce(
     (sum, cat) => sum + cat.budget,
@@ -597,6 +546,8 @@ const Dashboard = () => {
           <NepaliDateFilter onFilterChange={setFilter} initialFilter={filter} />
         </div>
       </div>
+
+      {/* Summary Cards */}
       <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl bg-white p-6 shadow-lg">
           <div className="mb-4 flex items-center justify-between">
@@ -659,6 +610,8 @@ const Dashboard = () => {
           </p>
         </div>
       </div>
+
+      {/* Main Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <FinanceCard
           title="Income"
@@ -673,7 +626,7 @@ const Dashboard = () => {
           bgColor="bg-white"
         />
 
-        {/* Enhanced Expense Categories with ExpenseCategoryCard */}
+        {/* Expense Categories with ExpenseCategoryCard */}
         <div className="overflow-hidden rounded-xl bg-white shadow-lg">
           <div className="border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
@@ -683,7 +636,6 @@ const Dashboard = () => {
                   Expense Categories
                 </h2>
               </div>
-              {/* Add Category Button */}
               {!isAddingExpenseCategory && !editingExpenseId && (
                 <button
                   onClick={() => setIsAddingExpenseCategory(true)}
@@ -696,9 +648,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Category List with ExpenseCategoryCard */}
           <div className="max-h-[600px] overflow-y-auto p-6">
-            {/* Inline Add Form */}
             {isAddingExpenseCategory && (
               <div className="mb-4 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
                 <h3 className="mb-3 text-sm font-semibold text-gray-700">
@@ -751,7 +701,6 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Edit Form */}
             {editingExpenseId && (
               <div className="mb-4 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
                 <h3 className="mb-3 text-sm font-semibold text-gray-700">
@@ -878,7 +827,8 @@ const Dashboard = () => {
           bgColor="bg-white"
         />
       </div>
-      {/* Daily Expenses Section - At the bottom */}
+
+      {/* Daily Expenses Section with Grouping by Nepali Date and Category Filter */}
       <div className="mt-8">
         <div className="overflow-hidden rounded-xl bg-white shadow-lg">
           <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
@@ -888,17 +838,81 @@ const Dashboard = () => {
                 Daily Expenses
               </h2>
             </div>
-            <button
-              onClick={() => {
-                setIsAddingDailyExpense(true);
-                setEditingDailyExpenseId(null);
-                resetDailyExpenseForm();
-              }}
-              className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-            >
-              <Plus className="h-4 w-4" />
-              Add Expense
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Category Filter Button */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${
+                    selectedCategoryFilter
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="text-sm">
+                    {selectedCategoryFilter ? "Filtered" : "Filter"}
+                  </span>
+                  {selectedCategoryFilter && (
+                    <X
+                      className="h-3 w-3 cursor-pointer hover:text-gray-300"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClearCategoryFilter();
+                      }}
+                    />
+                  )}
+                </button>
+                
+                {/* Filter Dropdown */}
+                {showCategoryFilter && (
+                  <div className="absolute right-0 top-full z-10 mt-2 w-64 rounded-lg border border-gray-200 bg-white shadow-lg">
+                    <div className="border-b border-gray-200 px-4 py-2">
+                      <h3 className="font-medium text-gray-800">Filter by Category</h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto p-2">
+                      <button
+                        onClick={() => {
+                          setSelectedCategoryFilter(null);
+                          setShowCategoryFilter(false);
+                        }}
+                        className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-gray-100"
+                      >
+                        All Categories
+                      </button>
+                      {expenseCategoriesData?.data?.map((category) => (
+                        <button
+                          key={category.id}
+                          onClick={() => {
+                            setSelectedCategoryFilter(category.id);
+                            setShowCategoryFilter(false);
+                          }}
+                          className={`w-full rounded-md px-3 py-2 text-left text-sm hover:bg-gray-100 ${
+                            selectedCategoryFilter === category.id
+                              ? "bg-blue-50 text-blue-600"
+                              : ""
+                          }`}
+                        >
+                          {category.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <button
+                onClick={() => {
+                  setIsAddingDailyExpense(true);
+                  setEditingDailyExpenseId(null);
+                  resetDailyExpenseForm();
+                }}
+                className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+              >
+                <Plus className="h-4 w-4" />
+                Add Expense
+              </button>
+            </div>
           </div>
 
           <div className="p-6">
@@ -980,7 +994,7 @@ const Dashboard = () => {
                       className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select category</option>
-                      {expenseCategories.map((cat) => (
+                      {expenseCategoriesData?.data?.map((cat) => (
                         <option key={cat.id} value={cat.id}>
                           {cat.name}
                         </option>
@@ -1009,69 +1023,97 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Daily Expenses List */}
+            {/* Daily Expenses List - Grouped by Nepali Date */}
             {dailyExpensesLoading ? (
               <div className="flex justify-center py-12">
                 <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
               </div>
             ) : (
-              <div className="space-y-3">
-                {dailyExpensesData?.data?.map((expense) => (
-                  <div
-                    key={expense.id}
-                    className="flex items-center justify-between rounded-lg bg-gray-50 p-4 transition-shadow hover:shadow-md"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="rounded-lg bg-red-100 p-2">
-                        <TrendingDown className="h-5 w-5 text-red-500" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">
-                          {expense.description}
-                        </p>
-                        <div className="mt-1 flex items-center gap-3">
-                          <span className="text-sm text-gray-500">
-                            {expense.expenseCategory?.name}
-                          </span>
-                          <span className="text-sm text-gray-400">•</span>
-                          <span className="text-sm text-gray-500">
-                            {new Date(expense.date).toLocaleDateString()}
-                          </span>
+              <div className="space-y-6">
+                {dailyExpensesData?.groupedByNepaliDate &&
+                dailyExpensesData.groupedByNepaliDate.length > 0 ? (
+                  dailyExpensesData.groupedByNepaliDate.map((group) => (
+                    <div key={group.englishDate} className="overflow-hidden rounded-lg border border-gray-200">
+                      {/* Date Header with Nepali Date */}
+                      <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            {group.nepaliDate}
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            {new Date(group.englishDate).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500">Total for day</p>
+                          <p className="text-xl font-bold text-red-600">
+                            ${group.totalAmount.toLocaleString()}
+                          </p>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <p className="text-lg font-semibold text-red-600">
-                        ${expense.amount.toLocaleString()}
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEditDailyExpense(expense)}
-                          className="rounded-lg p-2 hover:bg-gray-200"
-                        >
-                          <Pencil className="h-4 w-4 text-blue-500" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDeleteClick(
-                              expense.id,
-                              expense.description,
-                              "dailyExpense",
-                            )
-                          }
-                          className="rounded-lg p-2 hover:bg-gray-200"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </button>
+                      
+                      {/* Expenses List for this date */}
+                      <div className="divide-y divide-gray-100">
+                        {group.expenses.map((expense) => (
+                          <div
+                            key={expense.id}
+                            className="flex items-center justify-between p-4 transition-colors hover:bg-gray-50"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="rounded-lg bg-red-100 p-2">
+                                <TrendingDown className="h-5 w-5 text-red-500" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-800">
+                                  {expense.description}
+                                </p>
+                                <div className="mt-1 flex items-center gap-3">
+                                  <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                                    {expense.expenseCategory?.name}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <p className="text-lg font-semibold text-red-600">
+                                ${expense.amount.toLocaleString()}
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEditDailyExpense(expense)}
+                                  className="rounded-lg p-2 hover:bg-gray-200"
+                                >
+                                  <Pencil className="h-4 w-4 text-blue-500" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteClick(
+                                      expense.id,
+                                      expense.description,
+                                      "dailyExpense",
+                                    )
+                                  }
+                                  className="rounded-lg p-2 hover:bg-gray-200"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                ))}
-                {(!dailyExpensesData?.data ||
-                  dailyExpensesData.data.length === 0) && (
+                  ))
+                ) : (
                   <div className="py-12 text-center text-gray-500">
-                    No daily expenses found for this period. Click "Add Expense"
-                    to get started.
+                    {selectedCategoryFilter 
+                      ? "No expenses found for the selected category in this period."
+                      : "No daily expenses found for this period. Click 'Add Expense' to get started."}
                   </div>
                 )}
               </div>
@@ -1079,6 +1121,8 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Refresh Button */}
       <div className="fixed bottom-6 right-6">
         <button
           onClick={() => {
@@ -1091,6 +1135,8 @@ const Dashboard = () => {
           <RefreshCw className="h-5 w-5" />
         </button>
       </div>
+
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="sm:max-w-[425px]">
           <AlertDialogHeader>

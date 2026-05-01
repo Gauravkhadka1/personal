@@ -158,6 +158,13 @@ export interface ExpenseCategoryWithBudget {
   date: string;
 }
 
+export interface GroupedDailyExpenses {
+  nepaliDate: string;
+  englishDate: string;
+  expenses: DailyExpense[];
+  totalAmount: number;
+}
+
 export const api = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -433,17 +440,20 @@ getExpenseCategories: build.query<
       invalidatesTags: ["Liability"],
     }),
 
-    // Daily Expense endpoints
-    getDailyExpenses: build.query<
-      FilteredResponse<DailyExpense[]> & { pagination: any; categoryTotals: any[] },
-      NepaliFilter
-    >({
-      query: (params) => ({
-        url: "finance/daily-expense",
-        params: params || {},
-      }),
-      providesTags: ["DailyExpense"],
-    }),
+getDailyExpenses: build.query<
+  FilteredResponse<DailyExpense[]> & { 
+    pagination: any; 
+    categoryTotals: any[];
+    groupedByNepaliDate: GroupedDailyExpenses[];
+  },
+  NepaliFilter
+>({
+  query: (params) => ({
+    url: "finance/daily-expense",
+    params: params || {},
+  }),
+  providesTags: ["DailyExpense"],
+}),
 
     createDailyExpense: build.mutation<DailyExpense, {
       description: string;
