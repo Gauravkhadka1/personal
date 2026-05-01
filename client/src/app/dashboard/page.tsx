@@ -1,8 +1,6 @@
-// client/src/app/dashboard/page.tsx
-
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -27,6 +25,9 @@ import {
   useCreateEarnedIncomeMutation,
   useUpdateEarnedIncomeMutation,
   useDeleteEarnedIncomeMutation,
+  useCreatePassiveIncomeMutation,
+  useUpdatePassiveIncomeMutation,
+  useDeletePassiveIncomeMutation,
   useGetExpenseCategoriesQuery,
   useCreateExpenseCategoryMutation,
   useUpdateExpenseCategoryMutation,
@@ -74,9 +75,34 @@ const Dashboard = () => {
   const [itemToDelete, setItemToDelete] = useState<{
     id: string;
     name: string;
-    type: "income" | "expense" | "asset" | "liability" | "dailyExpense";
+    type: "income" | "passiveIncome" | "expense" | "asset" | "liability" | "dailyExpense";
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Income Edit states (both earned and passive)
+  const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
+  const [editingIncomeType, setEditingIncomeType] = useState<"earned" | "passive">("earned");
+  const [editIncomeForm, setEditIncomeForm] = useState({
+    name: "",
+    amount: 0,
+    date: new Date().toISOString().split("T")[0],
+  });
+
+  // Asset Edit states
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [editAssetForm, setEditAssetForm] = useState({
+    name: "",
+    value: 0,
+    date: new Date().toISOString().split("T")[0],
+  });
+
+  // Liability Edit states
+  const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(null);
+  const [editLiabilityForm, setEditLiabilityForm] = useState({
+    name: "",
+    value: 0,
+    date: new Date().toISOString().split("T")[0],
+  });
 
   // Expense Category Edit states
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
@@ -100,6 +126,7 @@ const Dashboard = () => {
   const [newExpenseCategoryForm, setNewExpenseCategoryForm] = useState({
     name: "",
     amount: 0,
+    date: new Date().toISOString().split("T")[0],
   });
 
   const {
@@ -127,6 +154,10 @@ const Dashboard = () => {
   const [createEarnedIncome] = useCreateEarnedIncomeMutation();
   const [updateEarnedIncome] = useUpdateEarnedIncomeMutation();
   const [deleteEarnedIncome] = useDeleteEarnedIncomeMutation();
+
+  const [createPassiveIncome] = useCreatePassiveIncomeMutation();
+  const [updatePassiveIncome] = useUpdatePassiveIncomeMutation();
+  const [deletePassiveIncome] = useDeletePassiveIncomeMutation();
 
   const [createExpenseCategory] = useCreateExpenseCategoryMutation();
   const [updateExpenseCategory] = useUpdateExpenseCategoryMutation();
@@ -180,6 +211,7 @@ const Dashboard = () => {
     id: income.id,
     name: income.name,
     amount: income.amount,
+    date: income.date,
   }));
 
   const totalIncome = financialData?.data?.summary?.totalIncome || 0;
@@ -222,7 +254,7 @@ const Dashboard = () => {
     setDailyExpenseForm({
       description: expense.description,
       amount: expense.amount,
-      date: new Date(expense.date).toISOString().split("T")[0],
+      date: expense.date ? expense.date.split("T")[0] : new Date().toISOString().split("T")[0],
       expenseCategoryId: expense.expenseCategoryId,
     });
     setIsAddingDailyExpense(false);
@@ -240,7 +272,7 @@ const Dashboard = () => {
   const handleDeleteClick = (
     id: string,
     name: string,
-    type: "income" | "expense" | "asset" | "liability" | "dailyExpense",
+    type: "income" | "passiveIncome" | "expense" | "asset" | "liability" | "dailyExpense",
   ) => {
     setItemToDelete({ id, name, type });
     setDeleteDialogOpen(true);
@@ -254,6 +286,9 @@ const Dashboard = () => {
       switch (itemToDelete.type) {
         case "income":
           await deleteEarnedIncome(itemToDelete.id).unwrap();
+          break;
+        case "passiveIncome":
+          await deletePassiveIncome(itemToDelete.id).unwrap();
           break;
         case "expense":
           await deleteExpenseCategory(itemToDelete.id).unwrap();
@@ -291,7 +326,7 @@ const Dashboard = () => {
       await createEarnedIncome({
         name: data.name,
         amount: data.amount || 0,
-        date: data.date,
+        date: data.date || new Date().toISOString().split("T")[0],
       }).unwrap();
       refetch();
     } catch (err) {
@@ -311,8 +346,45 @@ const Dashboard = () => {
         date: data.date,
       }).unwrap();
       refetch();
+      setEditingIncomeId(null);
     } catch (err) {
       console.error("Failed to update income:", err);
+    }
+  };
+
+  const handleAddPassiveIncome = async (data: {
+    name: string;
+    amount?: number;
+    value?: number;
+    date?: string;
+  }) => {
+    try {
+      await createPassiveIncome({
+        name: data.name,
+        amount: data.amount || 0,
+        date: data.date || new Date().toISOString().split("T")[0],
+      }).unwrap();
+      refetch();
+    } catch (err) {
+      console.error("Failed to add passive income:", err);
+    }
+  };
+
+  const handleUpdatePassiveIncome = async (
+    id: string,
+    data: { name: string; amount?: number; value?: number; date?: string },
+  ) => {
+    try {
+      await updatePassiveIncome({
+        id,
+        name: data.name,
+        amount: data.amount || 0,
+        date: data.date,
+      }).unwrap();
+      refetch();
+      setEditingIncomeId(null);
+    } catch (err) {
+      console.error("Failed to update passive income:", err);
     }
   };
 
@@ -326,7 +398,7 @@ const Dashboard = () => {
       await createExpenseCategory({
         name: data.name,
         amount: data.amount || 0,
-        date: data.date,
+        date: data.date || new Date().toISOString().split("T")[0],
       }).unwrap();
       refetch();
       refetchExpenseCategories();
@@ -369,7 +441,7 @@ const Dashboard = () => {
       await createAsset({
         name: data.name,
         value: data.value || 0,
-        date: data.date,
+        date: data.date || new Date().toISOString().split("T")[0],
       }).unwrap();
       refetch();
     } catch (err) {
@@ -389,6 +461,7 @@ const Dashboard = () => {
         date: data.date,
       }).unwrap();
       refetch();
+      setEditingAssetId(null);
     } catch (err) {
       console.error("Failed to update asset:", err);
     }
@@ -404,7 +477,7 @@ const Dashboard = () => {
       await createLiability({
         name: data.name,
         value: data.value || 0,
-        date: data.date,
+        date: data.date || new Date().toISOString().split("T")[0],
       }).unwrap();
       refetch();
     } catch (err) {
@@ -424,6 +497,7 @@ const Dashboard = () => {
         date: data.date,
       }).unwrap();
       refetch();
+      setEditingLiabilityId(null);
     } catch (err) {
       console.error("Failed to update liability:", err);
     }
@@ -433,12 +507,13 @@ const Dashboard = () => {
     id: string;
     name: string;
     amount: number;
+    date?: string;
   }) => {
     setEditingExpenseId(category.id);
     setEditExpenseForm({
       name: category.name,
       amount: category.amount,
-      date: new Date().toISOString().split("T")[0],
+      date: category.date ? category.date.split("T")[0] : new Date().toISOString().split("T")[0],
     });
   };
 
@@ -466,16 +541,110 @@ const Dashboard = () => {
     await handleAddExpense({
       name: newExpenseCategoryForm.name,
       amount: newExpenseCategoryForm.amount,
-      date: new Date().toISOString().split("T")[0],
+      date: newExpenseCategoryForm.date,
     });
 
     setIsAddingExpenseCategory(false);
-    setNewExpenseCategoryForm({ name: "", amount: 0 });
+    setNewExpenseCategoryForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
   };
 
   const handleClearCategoryFilter = () => {
     setSelectedCategoryFilter(null);
     setShowCategoryFilter(false);
+  };
+
+  // Income edit handlers
+  const handleEditIncome = (item: any, type: "earned" | "passive") => {
+    setEditingIncomeId(item.id);
+    setEditingIncomeType(type);
+    setEditIncomeForm({
+      name: item.name,
+      amount: item.amount,
+      date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
+    });
+  };
+
+  const cancelEditIncome = () => {
+    setEditingIncomeId(null);
+    setEditIncomeForm({
+      name: "",
+      amount: 0,
+      date: new Date().toISOString().split("T")[0],
+    });
+  };
+
+  const saveEditIncome = async () => {
+    if (!editIncomeForm.name.trim() || editingIncomeId === null) return;
+    
+    if (editingIncomeType === "earned") {
+      await handleUpdateIncome(editingIncomeId, {
+        name: editIncomeForm.name,
+        amount: editIncomeForm.amount,
+        date: editIncomeForm.date,
+      });
+    } else {
+      await handleUpdatePassiveIncome(editingIncomeId, {
+        name: editIncomeForm.name,
+        amount: editIncomeForm.amount,
+        date: editIncomeForm.date,
+      });
+    }
+  };
+
+  // Asset edit handlers
+  const handleEditAsset = (item: any) => {
+    setEditingAssetId(item.id);
+    setEditAssetForm({
+      name: item.name,
+      value: item.value,
+      date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
+    });
+  };
+
+  const cancelEditAsset = () => {
+    setEditingAssetId(null);
+    setEditAssetForm({
+      name: "",
+      value: 0,
+      date: new Date().toISOString().split("T")[0],
+    });
+  };
+
+  const saveEditAsset = async () => {
+    if (!editAssetForm.name.trim() || editingAssetId === null) return;
+    await handleUpdateAsset(editingAssetId, {
+      name: editAssetForm.name,
+      value: editAssetForm.value,
+      date: editAssetForm.date,
+    });
+  };
+
+  // Liability edit handlers
+  const handleEditLiability = (item: any) => {
+    setEditingLiabilityId(item.id);
+    setEditLiabilityForm({
+      name: item.name,
+      value: item.value,
+      date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
+    });
+  };
+
+  const cancelEditLiability = () => {
+    setEditingLiabilityId(null);
+    setEditLiabilityForm({
+      name: "",
+      value: 0,
+      date: new Date().toISOString().split("T")[0],
+    });
+  };
+
+  const saveEditLiability = async () => {
+    if (!editLiabilityForm.name.trim() || editingLiabilityId === null) return;
+    await handleUpdateLiability(editingLiabilityId, {
+      name: editLiabilityForm.name,
+      value: editLiabilityForm.value,
+      date: editLiabilityForm.date,
+    });
   };
 
   if (isLoading) {
@@ -510,6 +679,8 @@ const Dashboard = () => {
     switch (type) {
       case "income":
         return "Income";
+      case "passiveIncome":
+        return "Passive Income";
       case "expense":
         return "Expense Category";
       case "asset":
@@ -621,6 +792,12 @@ const Dashboard = () => {
           onAdd={handleAddIncome}
           onUpdate={handleUpdateIncome}
           onDelete={(id, name) => handleDeleteClick(id, name, "income")}
+          onEdit={(item) => handleEditIncome(item, "earned")}
+          editingId={editingIncomeId}
+          editForm={editIncomeForm}
+          onEditFormChange={setEditIncomeForm}
+          onSaveEdit={saveEditIncome}
+          onCancelEdit={cancelEditIncome}
           icon={TrendingUp}
           color="text-green-600"
           bgColor="bg-white"
@@ -680,6 +857,20 @@ const Dashboard = () => {
                     }
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+                    <input
+                      type="date"
+                      value={newExpenseCategoryForm.date}
+                      onChange={(e) =>
+                        setNewExpenseCategoryForm({
+                          ...newExpenseCategoryForm,
+                          date: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={handleAddExpenseCategorySubmit}
@@ -690,7 +881,7 @@ const Dashboard = () => {
                     <button
                       onClick={() => {
                         setIsAddingExpenseCategory(false);
-                        setNewExpenseCategoryForm({ name: "", amount: 0 });
+                        setNewExpenseCategoryForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
                       }}
                       className="flex-1 rounded-lg bg-gray-300 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-400"
                     >
@@ -732,6 +923,20 @@ const Dashboard = () => {
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Budget amount"
                   />
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+                    <input
+                      type="date"
+                      value={editExpenseForm.date}
+                      onChange={(e) =>
+                        setEditExpenseForm({
+                          ...editExpenseForm,
+                          date: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={saveEditExpense}
@@ -800,11 +1005,18 @@ const Dashboard = () => {
             id: asset.id,
             name: asset.name,
             value: asset.value,
+            date: asset.date,
           }))}
           total={totalAssets}
           onAdd={handleAddAsset}
           onUpdate={handleUpdateAsset}
           onDelete={(id, name) => handleDeleteClick(id, name, "asset")}
+          onEdit={handleEditAsset}
+          editingId={editingAssetId}
+          editForm={editAssetForm}
+          onEditFormChange={setEditAssetForm}
+          onSaveEdit={saveEditAsset}
+          onCancelEdit={cancelEditAsset}
           icon={Wallet}
           color="text-blue-600"
           bgColor="bg-white"
@@ -817,11 +1029,18 @@ const Dashboard = () => {
             id: liab.id,
             name: liab.name,
             value: liab.value,
+            date: liab.date,
           }))}
           total={totalLiabilities}
           onAdd={handleAddLiability}
           onUpdate={handleUpdateLiability}
           onDelete={(id, name) => handleDeleteClick(id, name, "liability")}
+          onEdit={handleEditLiability}
+          editingId={editingLiabilityId}
+          editForm={editLiabilityForm}
+          onEditFormChange={setEditLiabilityForm}
+          onSaveEdit={saveEditLiability}
+          onCancelEdit={cancelEditLiability}
           icon={AlertTriangle}
           color="text-orange-600"
           bgColor="bg-white"
