@@ -58,6 +58,28 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Modal Components
+const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 hover:bg-gray-100 transition-colors"
+          >
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [filter, setFilter] = useState<{
@@ -79,10 +101,29 @@ const Dashboard = () => {
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Modal states
+  const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
+  const [isEditIncomeModalOpen, setIsEditIncomeModalOpen] = useState(false);
+  const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
+  const [isEditExpenseModalOpen, setIsEditExpenseModalOpen] = useState(false);
+  const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
+  const [isEditAssetModalOpen, setIsEditAssetModalOpen] = useState(false);
+  const [isAddLiabilityModalOpen, setIsAddLiabilityModalOpen] = useState(false);
+  const [isEditLiabilityModalOpen, setIsEditLiabilityModalOpen] = useState(false);
+  const [isAddDailyExpenseModalOpen, setIsAddDailyExpenseModalOpen] = useState(false);
+  const [isEditDailyExpenseModalOpen, setIsEditDailyExpenseModalOpen] = useState(false);
+
   // Income Edit states (both earned and passive)
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   const [editingIncomeType, setEditingIncomeType] = useState<"earned" | "passive">("earned");
   const [editIncomeForm, setEditIncomeForm] = useState({
+    name: "",
+    amount: 0,
+    date: new Date().toISOString().split("T")[0],
+  });
+
+  // Add Income state
+  const [addIncomeForm, setAddIncomeForm] = useState({
     name: "",
     amount: 0,
     date: new Date().toISOString().split("T")[0],
@@ -96,9 +137,23 @@ const Dashboard = () => {
     date: new Date().toISOString().split("T")[0],
   });
 
+  // Add Asset state
+  const [addAssetForm, setAddAssetForm] = useState({
+    name: "",
+    value: 0,
+    date: new Date().toISOString().split("T")[0],
+  });
+
   // Liability Edit states
   const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(null);
   const [editLiabilityForm, setEditLiabilityForm] = useState({
+    name: "",
+    value: 0,
+    date: new Date().toISOString().split("T")[0],
+  });
+
+  // Add Liability state
+  const [addLiabilityForm, setAddLiabilityForm] = useState({
     name: "",
     value: 0,
     date: new Date().toISOString().split("T")[0],
@@ -112,21 +167,20 @@ const Dashboard = () => {
     date: new Date().toISOString().split("T")[0],
   });
 
+  // Add Expense Category state
+  const [addExpenseForm, setAddExpenseForm] = useState({
+    name: "",
+    amount: 0,
+    date: new Date().toISOString().split("T")[0],
+  });
+
   // Daily Expenses states
-  const [isAddingDailyExpense, setIsAddingDailyExpense] = useState(false);
   const [editingDailyExpenseId, setEditingDailyExpenseId] = useState<string | null>(null);
   const [dailyExpenseForm, setDailyExpenseForm] = useState({
     description: "",
     amount: 0,
     date: new Date().toISOString().split("T")[0],
     expenseCategoryId: "",
-  });
-
-  const [isAddingExpenseCategory, setIsAddingExpenseCategory] = useState(false);
-  const [newExpenseCategoryForm, setNewExpenseCategoryForm] = useState({
-    name: "",
-    amount: 0,
-    date: new Date().toISOString().split("T")[0],
   });
 
   const {
@@ -236,9 +290,10 @@ const Dashboard = () => {
           ...dailyExpenseForm,
         }).unwrap();
         setEditingDailyExpenseId(null);
+        setIsEditDailyExpenseModalOpen(false);
       } else {
         await createDailyExpense(dailyExpenseForm).unwrap();
-        setIsAddingDailyExpense(false);
+        setIsAddDailyExpenseModalOpen(false);
       }
       resetDailyExpenseForm();
       refetchDailyExpenses();
@@ -257,7 +312,7 @@ const Dashboard = () => {
       date: expense.date ? expense.date.split("T")[0] : new Date().toISOString().split("T")[0],
       expenseCategoryId: expense.expenseCategoryId,
     });
-    setIsAddingDailyExpense(false);
+    setIsEditDailyExpenseModalOpen(true);
   };
 
   const resetDailyExpenseForm = () => {
@@ -316,188 +371,173 @@ const Dashboard = () => {
     }
   };
 
-  const handleAddIncome = async (data: {
-    name: string;
-    amount?: number;
-    value?: number;
-    date?: string;
-  }) => {
+  const handleAddIncome = async () => {
+    if (!addIncomeForm.name.trim()) return;
+    
     try {
       await createEarnedIncome({
-        name: data.name,
-        amount: data.amount || 0,
-        date: data.date || new Date().toISOString().split("T")[0],
+        name: addIncomeForm.name,
+        amount: addIncomeForm.amount,
+        date: addIncomeForm.date,
       }).unwrap();
       refetch();
+      setIsAddIncomeModalOpen(false);
+      setAddIncomeForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
     } catch (err) {
       console.error("Failed to add income:", err);
     }
   };
 
-  const handleUpdateIncome = async (
-    id: string,
-    data: { name: string; amount?: number; value?: number; date?: string },
-  ) => {
+  const handleUpdateIncome = async () => {
+    if (!editIncomeForm.name.trim() || editingIncomeId === null) return;
+    
     try {
-      await updateEarnedIncome({
-        id,
-        name: data.name,
-        amount: data.amount || 0,
-        date: data.date,
-      }).unwrap();
+      if (editingIncomeType === "earned") {
+        await updateEarnedIncome({
+          id: editingIncomeId,
+          name: editIncomeForm.name,
+          amount: editIncomeForm.amount,
+          date: editIncomeForm.date,
+        }).unwrap();
+      } else {
+        await updatePassiveIncome({
+          id: editingIncomeId,
+          name: editIncomeForm.name,
+          amount: editIncomeForm.amount,
+          date: editIncomeForm.date,
+        }).unwrap();
+      }
       refetch();
       setEditingIncomeId(null);
+      setIsEditIncomeModalOpen(false);
+      setEditIncomeForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
     } catch (err) {
       console.error("Failed to update income:", err);
     }
   };
 
-  const handleAddPassiveIncome = async (data: {
-    name: string;
-    amount?: number;
-    value?: number;
-    date?: string;
-  }) => {
+  const handleAddPassiveIncome = async () => {
+    if (!addIncomeForm.name.trim()) return;
+    
     try {
       await createPassiveIncome({
-        name: data.name,
-        amount: data.amount || 0,
-        date: data.date || new Date().toISOString().split("T")[0],
+        name: addIncomeForm.name,
+        amount: addIncomeForm.amount,
+        date: addIncomeForm.date,
       }).unwrap();
       refetch();
+      setIsAddIncomeModalOpen(false);
+      setAddIncomeForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
     } catch (err) {
       console.error("Failed to add passive income:", err);
     }
   };
 
-  const handleUpdatePassiveIncome = async (
-    id: string,
-    data: { name: string; amount?: number; value?: number; date?: string },
-  ) => {
-    try {
-      await updatePassiveIncome({
-        id,
-        name: data.name,
-        amount: data.amount || 0,
-        date: data.date,
-      }).unwrap();
-      refetch();
-      setEditingIncomeId(null);
-    } catch (err) {
-      console.error("Failed to update passive income:", err);
-    }
-  };
-
-  const handleAddExpense = async (data: {
-    name: string;
-    amount?: number;
-    value?: number;
-    date?: string;
-  }) => {
+  const handleAddExpense = async () => {
+    if (!addExpenseForm.name.trim()) return;
+    
     try {
       await createExpenseCategory({
-        name: data.name,
-        amount: data.amount || 0,
-        date: data.date || new Date().toISOString().split("T")[0],
+        name: addExpenseForm.name,
+        amount: addExpenseForm.amount,
+        date: addExpenseForm.date,
       }).unwrap();
       refetch();
       refetchExpenseCategories();
+      setIsAddExpenseModalOpen(false);
+      setAddExpenseForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
     } catch (err) {
       console.error("Failed to add expense category:", err);
     }
   };
 
-  const handleUpdateExpense = async (
-    id: string,
-    data: { name: string; amount?: number; value?: number; date?: string },
-  ) => {
+  const handleUpdateExpense = async () => {
+    if (!editExpenseForm.name.trim() || editingExpenseId === null) return;
+    
     try {
       await updateExpenseCategory({
-        id,
-        name: data.name,
-        amount: data.amount || 0,
-        date: data.date,
+        id: editingExpenseId,
+        name: editExpenseForm.name,
+        amount: editExpenseForm.amount,
+        date: editExpenseForm.date,
       }).unwrap();
       refetch();
       refetchExpenseCategories();
       setEditingExpenseId(null);
-      setEditExpenseForm({
-        name: "",
-        amount: 0,
-        date: new Date().toISOString().split("T")[0],
-      });
+      setIsEditExpenseModalOpen(false);
+      setEditExpenseForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
     } catch (err) {
       console.error("Failed to update expense category:", err);
     }
   };
 
-  const handleAddAsset = async (data: {
-    name: string;
-    amount?: number;
-    value?: number;
-    date?: string;
-  }) => {
+  const handleAddAsset = async () => {
+    if (!addAssetForm.name.trim()) return;
+    
     try {
       await createAsset({
-        name: data.name,
-        value: data.value || 0,
-        date: data.date || new Date().toISOString().split("T")[0],
+        name: addAssetForm.name,
+        value: addAssetForm.value,
+        date: addAssetForm.date,
       }).unwrap();
       refetch();
+      setIsAddAssetModalOpen(false);
+      setAddAssetForm({ name: "", value: 0, date: new Date().toISOString().split("T")[0] });
     } catch (err) {
       console.error("Failed to add asset:", err);
     }
   };
 
-  const handleUpdateAsset = async (
-    id: string,
-    data: { name: string; amount?: number; value?: number; date?: string },
-  ) => {
+  const handleUpdateAsset = async () => {
+    if (!editAssetForm.name.trim() || editingAssetId === null) return;
+    
     try {
       await updateAsset({
-        id,
-        name: data.name,
-        value: data.value || 0,
-        date: data.date,
+        id: editingAssetId,
+        name: editAssetForm.name,
+        value: editAssetForm.value,
+        date: editAssetForm.date,
       }).unwrap();
       refetch();
       setEditingAssetId(null);
+      setIsEditAssetModalOpen(false);
+      setEditAssetForm({ name: "", value: 0, date: new Date().toISOString().split("T")[0] });
     } catch (err) {
       console.error("Failed to update asset:", err);
     }
   };
 
-  const handleAddLiability = async (data: {
-    name: string;
-    amount?: number;
-    value?: number;
-    date?: string;
-  }) => {
+  const handleAddLiability = async () => {
+    if (!addLiabilityForm.name.trim()) return;
+    
     try {
       await createLiability({
-        name: data.name,
-        value: data.value || 0,
-        date: data.date || new Date().toISOString().split("T")[0],
+        name: addLiabilityForm.name,
+        value: addLiabilityForm.value,
+        date: addLiabilityForm.date,
       }).unwrap();
       refetch();
+      setIsAddLiabilityModalOpen(false);
+      setAddLiabilityForm({ name: "", value: 0, date: new Date().toISOString().split("T")[0] });
     } catch (err) {
       console.error("Failed to add liability:", err);
     }
   };
 
-  const handleUpdateLiability = async (
-    id: string,
-    data: { name: string; amount?: number; value?: number; date?: string },
-  ) => {
+  const handleUpdateLiability = async () => {
+    if (!editLiabilityForm.name.trim() || editingLiabilityId === null) return;
+    
     try {
       await updateLiability({
-        id,
-        name: data.name,
-        value: data.value || 0,
-        date: data.date,
+        id: editingLiabilityId,
+        name: editLiabilityForm.name,
+        value: editLiabilityForm.value,
+        date: editLiabilityForm.date,
       }).unwrap();
       refetch();
       setEditingLiabilityId(null);
+      setIsEditLiabilityModalOpen(false);
+      setEditLiabilityForm({ name: "", value: 0, date: new Date().toISOString().split("T")[0] });
     } catch (err) {
       console.error("Failed to update liability:", err);
     }
@@ -515,37 +555,7 @@ const Dashboard = () => {
       amount: category.amount,
       date: category.date ? category.date.split("T")[0] : new Date().toISOString().split("T")[0],
     });
-  };
-
-  const cancelEditExpense = () => {
-    setEditingExpenseId(null);
-    setEditExpenseForm({
-      name: "",
-      amount: 0,
-      date: new Date().toISOString().split("T")[0],
-    });
-  };
-
-  const saveEditExpense = async () => {
-    if (!editExpenseForm.name.trim() || editingExpenseId === null) return;
-    await handleUpdateExpense(editingExpenseId, {
-      name: editExpenseForm.name,
-      amount: editExpenseForm.amount,
-      date: editExpenseForm.date,
-    });
-  };
-
-  const handleAddExpenseCategorySubmit = async () => {
-    if (!newExpenseCategoryForm.name.trim()) return;
-
-    await handleAddExpense({
-      name: newExpenseCategoryForm.name,
-      amount: newExpenseCategoryForm.amount,
-      date: newExpenseCategoryForm.date,
-    });
-
-    setIsAddingExpenseCategory(false);
-    setNewExpenseCategoryForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
+    setIsEditExpenseModalOpen(true);
   };
 
   const handleClearCategoryFilter = () => {
@@ -562,33 +572,7 @@ const Dashboard = () => {
       amount: item.amount,
       date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
     });
-  };
-
-  const cancelEditIncome = () => {
-    setEditingIncomeId(null);
-    setEditIncomeForm({
-      name: "",
-      amount: 0,
-      date: new Date().toISOString().split("T")[0],
-    });
-  };
-
-  const saveEditIncome = async () => {
-    if (!editIncomeForm.name.trim() || editingIncomeId === null) return;
-    
-    if (editingIncomeType === "earned") {
-      await handleUpdateIncome(editingIncomeId, {
-        name: editIncomeForm.name,
-        amount: editIncomeForm.amount,
-        date: editIncomeForm.date,
-      });
-    } else {
-      await handleUpdatePassiveIncome(editingIncomeId, {
-        name: editIncomeForm.name,
-        amount: editIncomeForm.amount,
-        date: editIncomeForm.date,
-      });
-    }
+    setIsEditIncomeModalOpen(true);
   };
 
   // Asset edit handlers
@@ -599,24 +583,7 @@ const Dashboard = () => {
       value: item.value,
       date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
     });
-  };
-
-  const cancelEditAsset = () => {
-    setEditingAssetId(null);
-    setEditAssetForm({
-      name: "",
-      value: 0,
-      date: new Date().toISOString().split("T")[0],
-    });
-  };
-
-  const saveEditAsset = async () => {
-    if (!editAssetForm.name.trim() || editingAssetId === null) return;
-    await handleUpdateAsset(editingAssetId, {
-      name: editAssetForm.name,
-      value: editAssetForm.value,
-      date: editAssetForm.date,
-    });
+    setIsEditAssetModalOpen(true);
   };
 
   // Liability edit handlers
@@ -627,24 +594,7 @@ const Dashboard = () => {
       value: item.value,
       date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
     });
-  };
-
-  const cancelEditLiability = () => {
-    setEditingLiabilityId(null);
-    setEditLiabilityForm({
-      name: "",
-      value: 0,
-      date: new Date().toISOString().split("T")[0],
-    });
-  };
-
-  const saveEditLiability = async () => {
-    if (!editLiabilityForm.name.trim() || editingLiabilityId === null) return;
-    await handleUpdateLiability(editingLiabilityId, {
-      name: editLiabilityForm.name,
-      value: editLiabilityForm.value,
-      date: editLiabilityForm.date,
-    });
+    setIsEditLiabilityModalOpen(true);
   };
 
   if (isLoading) {
@@ -789,15 +739,18 @@ const Dashboard = () => {
           type="income"
           items={allIncomes}
           total={totalIncome}
-          onAdd={handleAddIncome}
+          onAdd={() => setIsAddIncomeModalOpen(true)}
           onUpdate={handleUpdateIncome}
           onDelete={(id, name) => handleDeleteClick(id, name, "income")}
           onEdit={(item) => handleEditIncome(item, "earned")}
           editingId={editingIncomeId}
           editForm={editIncomeForm}
           onEditFormChange={setEditIncomeForm}
-          onSaveEdit={saveEditIncome}
-          onCancelEdit={cancelEditIncome}
+          onSaveEdit={handleUpdateIncome}
+          onCancelEdit={() => {
+            setEditingIncomeId(null);
+            setIsEditIncomeModalOpen(false);
+          }}
           icon={TrendingUp}
           color="text-green-600"
           bgColor="bg-white"
@@ -813,148 +766,17 @@ const Dashboard = () => {
                   Expense Categories
                 </h2>
               </div>
-              {!isAddingExpenseCategory && !editingExpenseId && (
-                <button
-                  onClick={() => setIsAddingExpenseCategory(true)}
-                  className="flex items-center gap-1 rounded-lg bg-blue-500 px-3 py-1.5 text-white transition-colors hover:bg-blue-600"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span className="text-sm">Add</span>
-                </button>
-              )}
+              <button
+                onClick={() => setIsAddExpenseModalOpen(true)}
+                className="flex items-center gap-1 rounded-lg bg-blue-500 px-3 py-1.5 text-white transition-colors hover:bg-blue-600"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="text-sm">Add</span>
+              </button>
             </div>
           </div>
 
           <div className="max-h-[600px] overflow-y-auto p-6">
-            {isAddingExpenseCategory && (
-              <div className="mb-4 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
-                <h3 className="mb-3 text-sm font-semibold text-gray-700">
-                  Add New Category
-                </h3>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Category name (e.g., Groceries, Rent, Entertainment)"
-                    value={newExpenseCategoryForm.name}
-                    onChange={(e) =>
-                      setNewExpenseCategoryForm({
-                        ...newExpenseCategoryForm,
-                        name: e.target.value,
-                      })
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    autoFocus
-                  />
-                  <input
-                    type="number"
-                    placeholder="Budget amount"
-                    value={newExpenseCategoryForm.amount}
-                    onChange={(e) =>
-                      setNewExpenseCategoryForm({
-                        ...newExpenseCategoryForm,
-                        amount: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
-                    <input
-                      type="date"
-                      value={newExpenseCategoryForm.date}
-                      onChange={(e) =>
-                        setNewExpenseCategoryForm({
-                          ...newExpenseCategoryForm,
-                          date: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleAddExpenseCategorySubmit}
-                      className="flex-1 rounded-lg bg-green-500 px-3 py-2 text-sm text-white transition-colors hover:bg-green-600"
-                    >
-                      Save Category
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsAddingExpenseCategory(false);
-                        setNewExpenseCategoryForm({ name: "", amount: 0, date: new Date().toISOString().split("T")[0] });
-                      }}
-                      className="flex-1 rounded-lg bg-gray-300 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-400"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {editingExpenseId && (
-              <div className="mb-4 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
-                <h3 className="mb-3 text-sm font-semibold text-gray-700">
-                  Edit Category
-                </h3>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={editExpenseForm.name}
-                    onChange={(e) =>
-                      setEditExpenseForm({
-                        ...editExpenseForm,
-                        name: e.target.value,
-                      })
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Category name"
-                    autoFocus
-                  />
-                  <input
-                    type="number"
-                    value={editExpenseForm.amount}
-                    onChange={(e) =>
-                      setEditExpenseForm({
-                        ...editExpenseForm,
-                        amount: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Budget amount"
-                  />
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
-                    <input
-                      type="date"
-                      value={editExpenseForm.date}
-                      onChange={(e) =>
-                        setEditExpenseForm({
-                          ...editExpenseForm,
-                          date: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={saveEditExpense}
-                      className="flex-1 rounded-lg bg-green-500 px-3 py-2 text-sm text-white transition-colors hover:bg-green-600"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={cancelEditExpense}
-                      className="flex-1 rounded-lg bg-gray-300 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-400"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2">
               {expenseCategories.map((category) => (
                 <ExpenseCategoryCard
@@ -967,14 +789,11 @@ const Dashboard = () => {
                 />
               ))}
 
-              {expenseCategories.length === 0 &&
-                !isAddingExpenseCategory &&
-                !editingExpenseId && (
-                  <div className="py-12 text-center text-gray-500">
-                    No expense categories found. Click "Add New Category" to get
-                    started.
-                  </div>
-                )}
+              {expenseCategories.length === 0 && (
+                <div className="py-12 text-center text-gray-500">
+                  No expense categories found. Click "Add" to get started.
+                </div>
+              )}
             </div>
 
             {expenseCategories.length > 0 && (
@@ -1008,15 +827,18 @@ const Dashboard = () => {
             date: asset.date,
           }))}
           total={totalAssets}
-          onAdd={handleAddAsset}
+          onAdd={() => setIsAddAssetModalOpen(true)}
           onUpdate={handleUpdateAsset}
           onDelete={(id, name) => handleDeleteClick(id, name, "asset")}
           onEdit={handleEditAsset}
           editingId={editingAssetId}
           editForm={editAssetForm}
           onEditFormChange={setEditAssetForm}
-          onSaveEdit={saveEditAsset}
-          onCancelEdit={cancelEditAsset}
+          onSaveEdit={handleUpdateAsset}
+          onCancelEdit={() => {
+            setEditingAssetId(null);
+            setIsEditAssetModalOpen(false);
+          }}
           icon={Wallet}
           color="text-blue-600"
           bgColor="bg-white"
@@ -1032,15 +854,18 @@ const Dashboard = () => {
             date: liab.date,
           }))}
           total={totalLiabilities}
-          onAdd={handleAddLiability}
+          onAdd={() => setIsAddLiabilityModalOpen(true)}
           onUpdate={handleUpdateLiability}
           onDelete={(id, name) => handleDeleteClick(id, name, "liability")}
           onEdit={handleEditLiability}
           editingId={editingLiabilityId}
           editForm={editLiabilityForm}
           onEditFormChange={setEditLiabilityForm}
-          onSaveEdit={saveEditLiability}
-          onCancelEdit={cancelEditLiability}
+          onSaveEdit={handleUpdateLiability}
+          onCancelEdit={() => {
+            setEditingLiabilityId(null);
+            setIsEditLiabilityModalOpen(false);
+          }}
           icon={AlertTriangle}
           color="text-orange-600"
           bgColor="bg-white"
@@ -1122,9 +947,9 @@ const Dashboard = () => {
               
               <button
                 onClick={() => {
-                  setIsAddingDailyExpense(true);
                   setEditingDailyExpenseId(null);
                   resetDailyExpenseForm();
+                  setIsAddDailyExpenseModalOpen(true);
                 }}
                 className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
               >
@@ -1135,113 +960,6 @@ const Dashboard = () => {
           </div>
 
           <div className="p-6">
-            {/* Add/Edit Form */}
-            {(isAddingDailyExpense || editingDailyExpenseId) && (
-              <div className="mb-6 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Description
-                    </label>
-                    <div className="relative">
-                      <FileText className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Grocery shopping"
-                        value={dailyExpenseForm.description}
-                        onChange={(e) =>
-                          setDailyExpenseForm({
-                            ...dailyExpenseForm,
-                            description: e.target.value,
-                          })
-                        }
-                        className="w-full rounded-lg border py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Amount
-                    </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
-                      <input
-                        type="number"
-                        placeholder="0.00"
-                        value={dailyExpenseForm.amount}
-                        onChange={(e) =>
-                          setDailyExpenseForm({
-                            ...dailyExpenseForm,
-                            amount: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                        className="w-full rounded-lg border py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Date
-                    </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
-                      <input
-                        type="date"
-                        value={dailyExpenseForm.date}
-                        onChange={(e) =>
-                          setDailyExpenseForm({
-                            ...dailyExpenseForm,
-                            date: e.target.value,
-                          })
-                        }
-                        className="w-full rounded-lg border py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Category
-                    </label>
-                    <select
-                      value={dailyExpenseForm.expenseCategoryId}
-                      onChange={(e) =>
-                        setDailyExpenseForm({
-                          ...dailyExpenseForm,
-                          expenseCategoryId: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Select category</option>
-                      {expenseCategoriesData?.data?.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="mt-4 flex gap-3">
-                  <button
-                    onClick={handleDailyExpenseSubmit}
-                    className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
-                  >
-                    {editingDailyExpenseId ? "Update" : "Save"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsAddingDailyExpense(false);
-                      setEditingDailyExpenseId(null);
-                      resetDailyExpenseForm();
-                    }}
-                    className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Daily Expenses List - Grouped by Nepali Date */}
             {dailyExpensesLoading ? (
               <div className="flex justify-center py-12">
@@ -1354,6 +1072,563 @@ const Dashboard = () => {
           <RefreshCw className="h-5 w-5" />
         </button>
       </div>
+
+      {/* Add Income Modal */}
+      <Modal isOpen={isAddIncomeModalOpen} onClose={() => setIsAddIncomeModalOpen(false)} title="Add Income">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <input
+              type="text"
+              placeholder="e.g., Salary, Freelance"
+              value={addIncomeForm.name}
+              onChange={(e) => setAddIncomeForm({ ...addIncomeForm, name: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Amount</label>
+            <input
+              type="number"
+              placeholder="0.00"
+              value={addIncomeForm.amount}
+              onChange={(e) => setAddIncomeForm({ ...addIncomeForm, amount: parseFloat(e.target.value) || 0 })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+              <input
+                type="date"
+                value={addIncomeForm.date}
+                onChange={(e) => setAddIncomeForm({ ...addIncomeForm, date: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleAddIncome}
+              className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setIsAddIncomeModalOpen(false)}
+              className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Income Modal */}
+      <Modal isOpen={isEditIncomeModalOpen} onClose={() => setIsEditIncomeModalOpen(false)} title="Edit Income">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <input
+              type="text"
+              value={editIncomeForm.name}
+              onChange={(e) => setEditIncomeForm({ ...editIncomeForm, name: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Amount</label>
+            <input
+              type="number"
+              value={editIncomeForm.amount}
+              onChange={(e) => setEditIncomeForm({ ...editIncomeForm, amount: parseFloat(e.target.value) || 0 })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+              <input
+                type="date"
+                value={editIncomeForm.date}
+                onChange={(e) => setEditIncomeForm({ ...editIncomeForm, date: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleUpdateIncome}
+              className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
+            >
+              Update
+            </button>
+            <button
+              onClick={() => setIsEditIncomeModalOpen(false)}
+              className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add Expense Category Modal */}
+      <Modal isOpen={isAddExpenseModalOpen} onClose={() => setIsAddExpenseModalOpen(false)} title="Add Expense Category">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Category Name</label>
+            <input
+              type="text"
+              placeholder="e.g., Groceries, Rent, Entertainment"
+              value={addExpenseForm.name}
+              onChange={(e) => setAddExpenseForm({ ...addExpenseForm, name: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Budget Amount</label>
+            <input
+              type="number"
+              placeholder="0.00"
+              value={addExpenseForm.amount}
+              onChange={(e) => setAddExpenseForm({ ...addExpenseForm, amount: parseFloat(e.target.value) || 0 })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+              <input
+                type="date"
+                value={addExpenseForm.date}
+                onChange={(e) => setAddExpenseForm({ ...addExpenseForm, date: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleAddExpense}
+              className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setIsAddExpenseModalOpen(false)}
+              className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Expense Category Modal */}
+      <Modal isOpen={isEditExpenseModalOpen} onClose={() => setIsEditExpenseModalOpen(false)} title="Edit Expense Category">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Category Name</label>
+            <input
+              type="text"
+              value={editExpenseForm.name}
+              onChange={(e) => setEditExpenseForm({ ...editExpenseForm, name: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Budget Amount</label>
+            <input
+              type="number"
+              value={editExpenseForm.amount}
+              onChange={(e) => setEditExpenseForm({ ...editExpenseForm, amount: parseFloat(e.target.value) || 0 })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+              <input
+                type="date"
+                value={editExpenseForm.date}
+                onChange={(e) => setEditExpenseForm({ ...editExpenseForm, date: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleUpdateExpense}
+              className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
+            >
+              Update
+            </button>
+            <button
+              onClick={() => setIsEditExpenseModalOpen(false)}
+              className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add Asset Modal */}
+      <Modal isOpen={isAddAssetModalOpen} onClose={() => setIsAddAssetModalOpen(false)} title="Add Asset">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <input
+              type="text"
+              placeholder="e.g., House, Car, Stocks"
+              value={addAssetForm.name}
+              onChange={(e) => setAddAssetForm({ ...addAssetForm, name: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Value</label>
+            <input
+              type="number"
+              placeholder="0.00"
+              value={addAssetForm.value}
+              onChange={(e) => setAddAssetForm({ ...addAssetForm, value: parseFloat(e.target.value) || 0 })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+              <input
+                type="date"
+                value={addAssetForm.date}
+                onChange={(e) => setAddAssetForm({ ...addAssetForm, date: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleAddAsset}
+              className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setIsAddAssetModalOpen(false)}
+              className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Asset Modal */}
+      <Modal isOpen={isEditAssetModalOpen} onClose={() => setIsEditAssetModalOpen(false)} title="Edit Asset">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <input
+              type="text"
+              value={editAssetForm.name}
+              onChange={(e) => setEditAssetForm({ ...editAssetForm, name: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Value</label>
+            <input
+              type="number"
+              value={editAssetForm.value}
+              onChange={(e) => setEditAssetForm({ ...editAssetForm, value: parseFloat(e.target.value) || 0 })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+              <input
+                type="date"
+                value={editAssetForm.date}
+                onChange={(e) => setEditAssetForm({ ...editAssetForm, date: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleUpdateAsset}
+              className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
+            >
+              Update
+            </button>
+            <button
+              onClick={() => setIsEditAssetModalOpen(false)}
+              className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add Liability Modal */}
+      <Modal isOpen={isAddLiabilityModalOpen} onClose={() => setIsAddLiabilityModalOpen(false)} title="Add Liability">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <input
+              type="text"
+              placeholder="e.g., Mortgage, Car Loan, Credit Card"
+              value={addLiabilityForm.name}
+              onChange={(e) => setAddLiabilityForm({ ...addLiabilityForm, name: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Value</label>
+            <input
+              type="number"
+              placeholder="0.00"
+              value={addLiabilityForm.value}
+              onChange={(e) => setAddLiabilityForm({ ...addLiabilityForm, value: parseFloat(e.target.value) || 0 })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+              <input
+                type="date"
+                value={addLiabilityForm.date}
+                onChange={(e) => setAddLiabilityForm({ ...addLiabilityForm, date: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleAddLiability}
+              className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setIsAddLiabilityModalOpen(false)}
+              className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Liability Modal */}
+      <Modal isOpen={isEditLiabilityModalOpen} onClose={() => setIsEditLiabilityModalOpen(false)} title="Edit Liability">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <input
+              type="text"
+              value={editLiabilityForm.name}
+              onChange={(e) => setEditLiabilityForm({ ...editLiabilityForm, name: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Value</label>
+            <input
+              type="number"
+              value={editLiabilityForm.value}
+              onChange={(e) => setEditLiabilityForm({ ...editLiabilityForm, value: parseFloat(e.target.value) || 0 })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+              <input
+                type="date"
+                value={editLiabilityForm.date}
+                onChange={(e) => setEditLiabilityForm({ ...editLiabilityForm, date: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleUpdateLiability}
+              className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
+            >
+              Update
+            </button>
+            <button
+              onClick={() => setIsEditLiabilityModalOpen(false)}
+              className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add Daily Expense Modal */}
+      <Modal isOpen={isAddDailyExpenseModalOpen} onClose={() => setIsAddDailyExpenseModalOpen(false)} title="Add Daily Expense">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+            <input
+              type="text"
+              placeholder="e.g., Grocery shopping"
+              value={dailyExpenseForm.description}
+              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, description: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Amount</label>
+            <input
+              type="number"
+              placeholder="0.00"
+              value={dailyExpenseForm.amount}
+              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, amount: parseFloat(e.target.value) || 0 })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+              <input
+                type="date"
+                value={dailyExpenseForm.date}
+                onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, date: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
+            <select
+              value={dailyExpenseForm.expenseCategoryId}
+              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, expenseCategoryId: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select category</option>
+              {expenseCategoriesData?.data?.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleDailyExpenseSubmit}
+              className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => {
+                setIsAddDailyExpenseModalOpen(false);
+                resetDailyExpenseForm();
+              }}
+              className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Daily Expense Modal */}
+      <Modal isOpen={isEditDailyExpenseModalOpen} onClose={() => setIsEditDailyExpenseModalOpen(false)} title="Edit Daily Expense">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+            <input
+              type="text"
+              value={dailyExpenseForm.description}
+              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, description: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Amount</label>
+            <input
+              type="number"
+              value={dailyExpenseForm.amount}
+              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, amount: parseFloat(e.target.value) || 0 })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+              <input
+                type="date"
+                value={dailyExpenseForm.date}
+                onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, date: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
+            <select
+              value={dailyExpenseForm.expenseCategoryId}
+              onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, expenseCategoryId: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select category</option>
+              {expenseCategoriesData?.data?.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleDailyExpenseSubmit}
+              className="flex-1 rounded-lg bg-green-500 py-2 text-white hover:bg-green-600"
+            >
+              Update
+            </button>
+            <button
+              onClick={() => {
+                setIsEditDailyExpenseModalOpen(false);
+                setEditingDailyExpenseId(null);
+                resetDailyExpenseForm();
+              }}
+              className="flex-1 rounded-lg bg-gray-300 py-2 text-gray-700 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

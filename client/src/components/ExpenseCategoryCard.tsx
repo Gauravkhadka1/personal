@@ -92,29 +92,6 @@ const ExpenseCategoryCard: React.FC<ExpenseCategoryCardProps> = ({
     }
   };
 
-  const getStatusBadge = () => {
-    switch (category.status) {
-      case "overspent":
-        return (
-          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
-            Overspent
-          </span>
-        );
-      case "warning":
-        return (
-          <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
-            Warning
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-            On Track
-          </span>
-        );
-    }
-  };
-
   return (
     <div className="mb-4 rounded-lg border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between">
@@ -129,12 +106,6 @@ const ExpenseCategoryCard: React.FC<ExpenseCategoryCardProps> = ({
                 ${category.budget.toLocaleString()}
               </p>
             </div>
-            {/* <div>
-              <p className="text-xs font-medium text-gray-500">Spent</p>
-              <p className="text-lg font-semibold text-red-600">
-                ${category.spent.toLocaleString()}
-              </p>
-            </div> */}
             <div>
               <p className="text-xs font-medium text-gray-500">Remaining</p>
               <p className={`text-lg font-semibold ${getStatusColor()}`}>
