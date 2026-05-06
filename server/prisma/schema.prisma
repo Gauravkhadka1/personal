@@ -35,6 +35,8 @@ model User {
   assets            Asset[]
   liabilities       Liability[]
   dailyExpenses     DailyExpense[]     // Add this line
+  workoutDays       WorkoutDay[]       // Add this line
+  workoutLogs       WorkoutLog[]       // Add this line
 }
 
 enum Role {
@@ -116,4 +118,47 @@ model DailyExpense {
   user              User            @relation(fields: [userId], references: [userId], onDelete: Cascade)
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+}
+
+
+model WorkoutDay {
+  id        String   @id @default(cuid())
+  dayName   String
+  userId    Int
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  exercises WorkoutExercise[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, dayName]) // Each user can have one workout per day
+}
+
+model WorkoutExercise {
+  id            String   @id @default(cuid())
+  name          String
+  muscleGroup   String   // Chest, Tricep, Back, Bicep, Shoulder, Leg, Abs, etc.
+  defaultSets   Int      @default(3)
+  defaultReps   Int      @default(10)
+  defaultWeight Float    @default(0)
+  workoutDayId  String
+  workoutDay    WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+  workoutLogs   WorkoutLog[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model WorkoutLog {
+  id              String   @id @default(cuid())
+  date            DateTime
+  sets            Int
+  reps            Int
+  weight          Float
+  completed       Boolean  @default(false)
+  notes           String?
+  exerciseId      String
+  exercise        WorkoutExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  userId          Int
+  user            User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

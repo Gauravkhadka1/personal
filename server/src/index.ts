@@ -12,6 +12,7 @@ import { authenticateToken } from "./middleware/authMiddleware";
 /* ROUTE IMPORTS */
 import userRoutes from "./routes/userRoutes";
 import financeRoutes from "./routes/financeRoutes";
+import workoutRoutes from "./routes/workoutRoutes";
 
 
 dotenv.config();
@@ -103,6 +104,7 @@ app.get("/api", (req: Request, res: Response) => {
 
 app.use("/api/users",             userRoutes);
 app.use("/api/finance", financeRoutes);
+app.use("/api/workout", workoutRoutes);
 
 /* SERVER */
 const port = Number(process.env.PORT) || 8000;

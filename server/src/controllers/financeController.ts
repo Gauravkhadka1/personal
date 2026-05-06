@@ -408,7 +408,7 @@ export const getExpenseCategories = async (req: Request, res: Response): Promise
       where: whereClause,
       skip,
       take: limitNum,
-      orderBy: { date: 'desc' },
+      orderBy: { amount: 'desc' },
       include: {
         dailyExpenses: {
           where: {

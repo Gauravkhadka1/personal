@@ -28,7 +28,7 @@ export interface EarnedIncome {
   name: string;
   amount: number;
   userId: number;
-   date: string;
+  date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,7 +38,7 @@ export interface PassiveIncome {
   name: string;
   amount: number;
   userId: number;
-   date: string;
+  date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,7 +48,7 @@ export interface ExpenseCategory {
   name: string;
   amount: number;
   userId: number;
-   date: string;
+  date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -58,7 +58,7 @@ export interface Asset {
   name: string;
   value: number;
   userId: number;
-   date: string;
+  date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -68,7 +68,7 @@ export interface Liability {
   name: string;
   value: number;
   userId: number;
-   date: string;
+  date: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,7 +84,7 @@ export interface FinancialSummary {
     netCashFlow: number;
     netWorth: number;
     currentCash: number;
-      totalDailyExpenses: number; 
+    totalDailyExpenses: number;
   };
   details: {
     earnedIncomes: EarnedIncome[];
@@ -118,7 +118,7 @@ export interface ExpenseCategorySummary {
   spent: number;
   remaining: number;
   percentageUsed: string;
-  status: 'overspent' | 'warning' | 'good';
+  status: "overspent" | "warning" | "good";
 }
 
 export interface NepaliFilter {
@@ -156,7 +156,7 @@ export interface ExpenseCategoryWithBudget {
   spent: number;
   remaining: number;
   percentageUsed: number;
-  status: 'overspent' | 'warning' | 'good';
+  status: "overspent" | "warning" | "good";
   date: string;
 }
 
@@ -166,6 +166,58 @@ export interface GroupedDailyExpenses {
   expenses: DailyExpense[];
   totalAmount: number;
 }
+
+export interface WorkoutExercise {
+  id: string;
+  name: string;
+  muscleGroup: string;
+  defaultSets: number;
+  defaultReps: number;
+  defaultWeight: number;
+  workoutDayId: string;
+  workoutLogs?: WorkoutLog[];
+}
+
+export interface WorkoutDay {
+  id: string;
+  dayName: string;
+  exercises: WorkoutExercise[];
+}
+
+export interface WorkoutLog {
+  id: string;
+  date: string;
+  sets: number;
+  reps: number;
+  weight: number;
+  completed: boolean;
+  notes?: string;
+  exerciseId: string;
+  exercise: WorkoutExercise & { workoutDay: WorkoutDay };
+}
+
+export interface WorkoutReport {
+  summary: {
+    totalWorkouts: number;
+    totalSets: number;
+    totalReps: number;
+    totalVolume: number;
+  };
+  byMuscleGroup: Array<{
+    muscleGroup: string;
+    totalSets: number;
+    totalVolume: number;
+    exercises: string[];
+  }>;
+  byDayOfWeek: Array<{
+    dayName: string;
+    totalSets: number;
+    totalVolume: number;
+  }>;
+  recentLogs: WorkoutLog[];
+}
+
+// Add these to the api endpoints
 
 export const api = createApi({
   baseQuery: fetchBaseQuery({
@@ -191,6 +243,8 @@ export const api = createApi({
     "DailyExpense",
     "ExpenseCategorySummary",
     "AvailableFilters",
+    "WorkoutLogs",
+    "Workout",
   ],
   endpoints: (build) => ({
     // User endpoints (existing)
@@ -236,6 +290,8 @@ export const api = createApi({
       invalidatesTags: ["Users"],
     }),
 
+       // ============ FINANCE ENDPOINTS ============
+
     // Available Filters
     getAvailableFilters: build.query<AvailableFilters, void>({
       query: () => "finance/available-filters",
@@ -251,7 +307,12 @@ export const api = createApi({
         url: "finance/summary",
         params: params || {},
       }),
-      providesTags: ["EarnedIncome", "PassiveIncome", "ExpenseCategory", "Liability"],
+      providesTags: [
+        "EarnedIncome",
+        "PassiveIncome",
+        "ExpenseCategory",
+        "Liability",
+      ],
     }),
 
     // Earned Income
@@ -319,7 +380,7 @@ export const api = createApi({
     }),
     updatePassiveIncome: build.mutation<
       PassiveIncome,
-  { id: string; name: string; amount: number; date?: string }
+      { id: string; name: string; amount: number; date?: string }
     >({
       query: ({ id, ...body }) => ({
         url: `finance/passive-income/${id}`,
@@ -337,22 +398,30 @@ export const api = createApi({
     }),
 
     // Expense Category
-// Updated getExpenseCategories query
-getExpenseCategories: build.query<
-  { 
-    data: ExpenseCategoryWithBudget[]; 
-    pagination: { page: number; limit: number; total: number; totalPages: number };
-    filter: any;
-  },
-  NepaliFilter
->({
-  query: (params) => ({
-    url: "finance/expense-category",
-    params: params || {},
-  }),
-  providesTags: ["ExpenseCategory"],
-}),
-    createExpenseCategory: build.mutation<ExpenseCategory,   { name: string; amount: number; date?: string }>({
+    // Updated getExpenseCategories query
+    getExpenseCategories: build.query<
+      {
+        data: ExpenseCategoryWithBudget[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+        filter: any;
+      },
+      NepaliFilter
+    >({
+      query: (params) => ({
+        url: "finance/expense-category",
+        params: params || {},
+      }),
+      providesTags: ["ExpenseCategory"],
+    }),
+    createExpenseCategory: build.mutation<
+      ExpenseCategory,
+      { name: string; amount: number; date?: string }
+    >({
       query: (body) => ({
         url: "finance/expense-category",
         method: "POST",
@@ -384,7 +453,10 @@ getExpenseCategories: build.query<
       query: () => "finance/asset",
       providesTags: ["Asset"],
     }),
-    createAsset: build.mutation<Asset, { name: string; value: number; date?: string }>({
+    createAsset: build.mutation<
+      Asset,
+      { name: string; value: number; date?: string }
+    >({
       query: (body) => ({
         url: "finance/asset",
         method: "POST",
@@ -392,7 +464,10 @@ getExpenseCategories: build.query<
       }),
       invalidatesTags: ["Asset"],
     }),
-    updateAsset: build.mutation<Asset, { id: string; name: string; value: number; date?: string }>({
+    updateAsset: build.mutation<
+      Asset,
+      { id: string; name: string; value: number; date?: string }
+    >({
       query: ({ id, ...body }) => ({
         url: `finance/asset/${id}`,
         method: "PUT",
@@ -413,19 +488,20 @@ getExpenseCategories: build.query<
       query: () => "finance/liability",
       providesTags: ["Liability"],
     }),
-    createLiability: build.mutation<Liability, { name: string; value: number; date?: string }>(
-      {
-        query: (body) => ({
-          url: "finance/liability",
-          method: "POST",
-          body,
-        }),
-        invalidatesTags: ["Liability"],
-      },
-    ),
+    createLiability: build.mutation<
+      Liability,
+      { name: string; value: number; date?: string }
+    >({
+      query: (body) => ({
+        url: "finance/liability",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Liability"],
+    }),
     updateLiability: build.mutation<
       Liability,
-      { id: string; name: string; value: number; date?: string  }
+      { id: string; name: string; value: number; date?: string }
     >({
       query: ({ id, ...body }) => ({
         url: `finance/liability/${id}`,
@@ -442,27 +518,30 @@ getExpenseCategories: build.query<
       invalidatesTags: ["Liability"],
     }),
 
-getDailyExpenses: build.query<
-  FilteredResponse<DailyExpense[]> & { 
-    pagination: any; 
-    categoryTotals: any[];
-    groupedByNepaliDate: GroupedDailyExpenses[];
-  },
-  NepaliFilter
->({
-  query: (params) => ({
-    url: "finance/daily-expense",
-    params: params || {},
-  }),
-  providesTags: ["DailyExpense"],
-}),
+    getDailyExpenses: build.query<
+      FilteredResponse<DailyExpense[]> & {
+        pagination: any;
+        categoryTotals: any[];
+        groupedByNepaliDate: GroupedDailyExpenses[];
+      },
+      NepaliFilter
+    >({
+      query: (params) => ({
+        url: "finance/daily-expense",
+        params: params || {},
+      }),
+      providesTags: ["DailyExpense"],
+    }),
 
-    createDailyExpense: build.mutation<DailyExpense, {
-      description: string;
-      amount: number;
-      date: string;
-      expenseCategoryId: string;
-    }>({
+    createDailyExpense: build.mutation<
+      DailyExpense,
+      {
+        description: string;
+        amount: number;
+        date: string;
+        expenseCategoryId: string;
+      }
+    >({
       query: (body) => ({
         url: "finance/daily-expense",
         method: "POST",
@@ -471,13 +550,16 @@ getDailyExpenses: build.query<
       invalidatesTags: ["DailyExpense", "ExpenseCategorySummary"],
     }),
 
-    updateDailyExpense: build.mutation<DailyExpense, {
-      id: string;
-      description: string;
-      amount: number;
-      date: string;
-      expenseCategoryId: string;
-    }>({
+    updateDailyExpense: build.mutation<
+      DailyExpense,
+      {
+        id: string;
+        description: string;
+        amount: number;
+        date: string;
+        expenseCategoryId: string;
+      }
+    >({
       query: ({ id, ...body }) => ({
         url: `finance/daily-expense/${id}`,
         method: "PUT",
@@ -495,7 +577,10 @@ getDailyExpenses: build.query<
     }),
 
     getExpenseCategorySummary: build.query<
-      FilteredResponse<{ data: ExpenseCategorySummary[]; summary: { totalBudget: number; totalSpent: number } }>,
+      FilteredResponse<{
+        data: ExpenseCategorySummary[];
+        summary: { totalBudget: number; totalSpent: number };
+      }>,
       NepaliFilter
     >({
       query: (params) => ({
@@ -505,9 +590,147 @@ getDailyExpenses: build.query<
       providesTags: ["ExpenseCategorySummary"],
     }),
 
-    getExpenseCategoriesList: build.query<{ id: string; name: string; amount: number }[], void>({
+    getExpenseCategoriesList: build.query<
+      { id: string; name: string; amount: number }[],
+      void
+    >({
       query: () => "daily-expenses/categories",
       providesTags: ["ExpenseCategory"],
+    }),
+
+
+   // ============================== WORKOUT ENDPOINTS ================================================================
+    createWorkoutDay: build.mutation<WorkoutDay, { dayName: string }>({
+      query: (body) => ({
+        url: "workout/day",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Workout"],
+    }),
+
+    getWorkoutPlan: build.query<{ data: WorkoutDay[] }, void>({
+      query: () => "workout/plan",
+      providesTags: ["Workout"],
+    }),
+
+    getWorkoutByDay: build.query<{ data: WorkoutDay }, string>({
+      query: (dayName) => `workout/day/${dayName}`,
+      providesTags: ["Workout"],
+    }),
+
+    addExerciseToDay: build.mutation<
+      WorkoutExercise,
+      {
+        dayId: string;
+        name: string;
+        muscleGroup: string;
+        defaultSets?: number;
+        defaultReps?: number;
+        defaultWeight?: number;
+      }
+    >({
+      query: ({ dayId, ...body }) => ({
+        url: `workout/day/${dayId}/exercise`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Workout"],
+    }),
+
+    updateExercise: build.mutation<
+      WorkoutExercise,
+      {
+        id: string;
+        name?: string;
+        muscleGroup?: string;
+        defaultSets?: number;
+        defaultReps?: number;
+        defaultWeight?: number;
+      }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `workout/exercise/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["Workout"],
+    }),
+
+    deleteExercise: build.mutation<void, string>({
+      query: (id) => ({
+        url: `workout/exercise/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Workout"],
+    }),
+
+    logWorkout: build.mutation<
+      WorkoutLog,
+      {
+        exerciseId: string;
+        sets: number;
+        reps: number;
+        weight: number;
+        notes?: string;
+        date?: string;
+      }
+    >({
+      query: ({ exerciseId, ...body }) => ({
+        url: `workout/log/${exerciseId}`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Workout", "WorkoutLogs"],
+    }),
+
+    getWorkoutLogs: build.query<
+      { data: WorkoutLog[] },
+      { exerciseId?: string; date?: string; startDate?: string; endDate?: string }
+    >({
+      query: (params) => ({
+        url: "workout/logs",
+        params,
+      }),
+      providesTags: ["WorkoutLogs"],
+    }),
+
+    getWorkoutReport: build.query<
+      { data: WorkoutReport },
+      { startDate?: string; endDate?: string }
+    >({
+      query: (params) => ({
+        url: "workout/report",
+        params,
+      }),
+      providesTags: ["WorkoutLogs"],
+    }),
+
+    updateWorkoutLog: build.mutation<
+      WorkoutLog,
+      {
+        id: string;
+        sets?: number;
+        reps?: number;
+        weight?: number;
+        completed?: boolean;
+        notes?: string;
+      }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `workout/log/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["WorkoutLogs"],
+    }),
+
+    deleteWorkoutLog: build.mutation<void, string>({
+      query: (id) => ({
+        url: `workout/log/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["WorkoutLogs"],
     }),
   }),
 });
@@ -533,25 +756,25 @@ export const {
   useCreatePassiveIncomeMutation,
   useUpdatePassiveIncomeMutation,
   useDeletePassiveIncomeMutation,
-  
+
   // Expense Category hooks
   useGetExpenseCategoriesQuery,
   useCreateExpenseCategoryMutation,
   useUpdateExpenseCategoryMutation,
   useDeleteExpenseCategoryMutation,
-  
+
   // Asset hooks
   useGetAssetsQuery,
   useCreateAssetMutation,
   useUpdateAssetMutation,
   useDeleteAssetMutation,
-  
+
   // Liability hooks
   useGetLiabilitiesQuery,
   useCreateLiabilityMutation,
   useUpdateLiabilityMutation,
   useDeleteLiabilityMutation,
-  
+
   // Daily Expense hooks
   useGetDailyExpensesQuery,
   useCreateDailyExpenseMutation,
@@ -559,4 +782,15 @@ export const {
   useDeleteDailyExpenseMutation,
   useGetExpenseCategorySummaryQuery,
   useGetExpenseCategoriesListQuery,
+
+  useCreateWorkoutDayMutation,
+  useAddExerciseToDayMutation,
+  useUpdateExerciseMutation,
+  useDeleteExerciseMutation,
+  useLogWorkoutMutation,
+  useGetWorkoutLogsQuery,
+  useGetWorkoutReportQuery,
+  useUpdateWorkoutLogMutation,
+  useDeleteWorkoutLogMutation,
+  useGetWorkoutPlanQuery,
 } = api;
