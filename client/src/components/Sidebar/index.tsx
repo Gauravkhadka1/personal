@@ -31,6 +31,7 @@ import {
   BookOpen,
   Trash2,
   FileText,
+  Notebook,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -145,6 +146,7 @@ const Sidebar = () => {
             </h3>
           </div>
           <SidebarLink icon={Home} label="Dashboard" href="/dashboard" />
+          <SidebarLink icon={Notebook} label="Lessons" href="/lessons" />
 
         </nav>
       </div>
