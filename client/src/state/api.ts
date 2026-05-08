@@ -217,7 +217,44 @@ export interface WorkoutReport {
   recentLogs: WorkoutLog[];
 }
 
-// Add these to the api endpoints
+
+export interface LessonCategory {
+  id: string;
+  name: string;
+  description?: string;
+  lessonCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  content?: string;
+  contentType: "TEXT" | "IMAGE" | "TEXT_IMAGE";
+  imageUrl?: string;
+  categoryId: string;
+  category?: LessonCategory;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLessonData {
+  title: string;
+  content?: string;
+  contentType: "TEXT" | "IMAGE" | "TEXT_IMAGE";
+  imageUrl?: string;
+  categoryId: string;
+}
+
+export interface UpdateLessonData {
+  title?: string;
+  content?: string;
+  contentType?: "TEXT" | "IMAGE" | "TEXT_IMAGE";
+  imageUrl?: string;
+  categoryId?: string;
+}
 
 export const api = createApi({
   baseQuery: fetchBaseQuery({
@@ -245,6 +282,7 @@ export const api = createApi({
     "AvailableFilters",
     "WorkoutLogs",
     "Workout",
+    "Lessons", "LessonCategories"
   ],
   endpoints: (build) => ({
     // User endpoints (existing)
@@ -732,6 +770,89 @@ export const api = createApi({
       }),
       invalidatesTags: ["WorkoutLogs"],
     }),
+
+    // Lesson Category Endpoints
+getLessonCategories: build.query<LessonCategory[], void>({
+  query: () => "lessons/categories",
+  providesTags: ["LessonCategories"],
+}),
+
+getLessonCategoryById: build.query<LessonCategory, string>({
+  query: (id) => `lessons/categories/${id}`,
+  providesTags: ["LessonCategories"],
+}),
+
+createLessonCategory: build.mutation<LessonCategory, { name: string; description?: string }>({
+  query: (body) => ({
+    url: "lessons/categories",
+    method: "POST",
+    body,
+  }),
+  invalidatesTags: ["LessonCategories"],
+}),
+
+updateLessonCategory: build.mutation<LessonCategory, { id: string; name?: string; description?: string }>({
+  query: ({ id, ...body }) => ({
+    url: `lessons/categories/${id}`,
+    method: "PUT",
+    body,
+  }),
+  invalidatesTags: ["LessonCategories"],
+}),
+
+deleteLessonCategory: build.mutation<void, string>({
+  query: (id) => ({
+    url: `lessons/categories/${id}`,
+    method: "DELETE",
+  }),
+  invalidatesTags: ["LessonCategories", "Lessons"],
+}),
+
+// Lesson Endpoints
+getLessons: build.query<{ data: Lesson[]; pagination: any }, { categoryId?: string; contentType?: string; search?: string; page?: number; limit?: number }>({
+  query: (params) => ({
+    url: "lessons",
+    params,
+  }),
+  providesTags: ["Lessons"],
+}),
+
+getLessonById: build.query<Lesson, string>({
+  query: (id) => `lessons/${id}`,
+  providesTags: ["Lessons"],
+}),
+
+createLesson: build.mutation<Lesson, CreateLessonData>({
+  query: (body) => ({
+    url: "lessons",
+    method: "POST",
+    body,
+  }),
+  invalidatesTags: ["Lessons", "LessonCategories"],
+}),
+
+updateLesson: build.mutation<Lesson, { id: string; data: UpdateLessonData }>({
+  query: ({ id, data }) => ({
+    url: `lessons/${id}`,
+    method: "PUT",
+    body: data,
+  }),
+  invalidatesTags: ["Lessons", "LessonCategories"],
+}),
+
+deleteLesson: build.mutation<void, string>({
+  query: (id) => ({
+    url: `lessons/${id}`,
+    method: "DELETE",
+  }),
+  invalidatesTags: ["Lessons", "LessonCategories"],
+}),
+
+getLessonsByCategory: build.query<{ data: Lesson[]; count: number }, string>({
+  query: (categoryId) => `lessons/category/${categoryId}`,
+  providesTags: ["Lessons"],
+}),
+
   }),
 });
 
@@ -793,4 +914,17 @@ export const {
   useUpdateWorkoutLogMutation,
   useDeleteWorkoutLogMutation,
   useGetWorkoutPlanQuery,
+
+  // Lessons hooks
+    useGetLessonCategoriesQuery,
+  useGetLessonCategoryByIdQuery,
+  useCreateLessonCategoryMutation,
+  useUpdateLessonCategoryMutation,
+  useDeleteLessonCategoryMutation,
+  useGetLessonsQuery,
+  useGetLessonByIdQuery,
+  useCreateLessonMutation,
+  useUpdateLessonMutation,
+  useDeleteLessonMutation,
+  useGetLessonsByCategoryQuery,
 } = api;
