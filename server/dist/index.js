@@ -16,6 +16,8 @@ const socket_io_1 = require("socket.io");
 /* ROUTE IMPORTS */
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const financeRoutes_1 = __importDefault(require("./routes/financeRoutes"));
+const workoutRoutes_1 = __importDefault(require("./routes/workoutRoutes"));
+const lessonRoutes_1 = __importDefault(require("./routes/lessonRoutes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
@@ -89,6 +91,8 @@ app.get("/api", (req, res) => {
 });
 app.use("/api/users", userRoutes_1.default);
 app.use("/api/finance", financeRoutes_1.default);
+app.use("/api/workout", workoutRoutes_1.default);
+app.use("/api/lessons", lessonRoutes_1.default);
 /* SERVER */
 const port = Number(process.env.PORT) || 8000;
 server.listen(port, "0.0.0.0", () => {

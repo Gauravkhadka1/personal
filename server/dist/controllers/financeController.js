@@ -376,7 +376,7 @@ const getExpenseCategories = (req, res) => __awaiter(void 0, void 0, void 0, fun
             where: whereClause,
             skip,
             take: limitNum,
-            orderBy: { date: 'desc' },
+            orderBy: { amount: 'desc' },
             include: {
                 dailyExpenses: {
                     where: Object.assign({ userId: Number(userId) }, dateWhereClause),

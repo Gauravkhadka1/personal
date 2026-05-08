@@ -72,7 +72,7 @@ export const getWorkoutByDay = async (req: Request, res: Response): Promise<void
     const workoutDay = await prisma.workoutDay.findFirst({
       where: { 
         userId: Number(userId),
-        dayName: { equals: dayName, mode: 'insensitive' }
+        dayName: { equals: dayName}
       },
       include: {
         exercises: {
