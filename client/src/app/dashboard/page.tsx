@@ -732,6 +732,8 @@ const Dashboard = () => {
   );
   const totalSpent = expenseCategories.reduce((sum, cat) => sum + cat.spent, 0);
 
+
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="mb-8">
