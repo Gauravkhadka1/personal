@@ -24,7 +24,7 @@ const NepaliDateFilter: React.FC<NepaliDateFilterProps> = ({
     // This is a simplified mapping - you should use a proper Nepali date library
     // For demo purposes, we'll use approximate values
     const currentYear = 2083; // Approximate Nepali year for demo
-    const currentMonth = 3; // 1-12
+    const currentMonth = 4; // 1-12
     return { year: currentYear, month: currentMonth };
   };
 
