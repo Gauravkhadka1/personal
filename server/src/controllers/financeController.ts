@@ -44,7 +44,7 @@ export const createEarnedIncome = async (req: Request, res: Response): Promise<v
 export const getEarnedIncomes = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 100 } = req.query;
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
@@ -210,7 +210,7 @@ export const createPassiveIncome = async (req: Request, res: Response): Promise<
 export const getPassiveIncomes = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 100 } = req.query;
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
@@ -377,7 +377,7 @@ export const createExpenseCategory = async (req: Request, res: Response): Promis
 export const getExpenseCategories = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 100 } = req.query;
     
     // Get date filter from middleware
     const nepaliFilter = (req as any).nepaliFilter;
@@ -606,7 +606,7 @@ export const createAsset = async (req: Request, res: Response): Promise<void> =>
 export const getAssets = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 100 } = req.query;
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
@@ -772,7 +772,7 @@ export const createLiability = async (req: Request, res: Response): Promise<void
 export const getLiabilities = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 100 } = req.query;
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
